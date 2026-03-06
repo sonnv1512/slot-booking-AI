@@ -1,0 +1,1354 @@
+/* management page styles */
+
+/* page container */
+.management-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+    background: white;
+    min-height: 100vh;
+}
+
+/* header bar */
+.management-header {
+    background: #51257a; /* bsssc purple */
+    color: white;
+    padding: 25px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.management-header h1 {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+}
+
+.subtitle {
+    margin: 5px 0 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+/* back button */
+.back-btn {
+    padding: 10px 20px;
+    background-color: #3cb2a9; /* teal */
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background-color: #2d8a83;
+}
+
+/* tab navigation */
+.tab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 0;
+    border-bottom: 2px solid #e0e0e0;
+    background: white;
+    padding: 0 40px;
+}
+
+/* individual tab */
+.tab-btn {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab-btn:hover {
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+/* active tab */
+.tab-btn.active {
+    color: #51257a;
+    border-bottom-color: #51257a;
+    font-weight: 600;
+}
+
+/* tab content area */
+.tab-content {
+    background: white;
+    border: none;
+    border-radius: 0;
+    padding: 30px 40px;
+    min-height: 500px;
+}
+
+/* loading state */
+.loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 20px;
+    color: #666;
+}
+
+/* users tab */
+.users-tab {
+    width: 100%;
+}
+
+/* search and add user controls */
+.users-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* add user btn */
+.add-user-btn {
+    padding: 12px 25px;
+    background: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.add-user-btn:hover {
+    background: #3d1c5c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(81, 37, 122, 0.3);
+}
+
+/* users table */
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.users-table th {
+    background-color: #51257a;
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    border: none;
+    font-size: 0.95rem;
+}
+
+.users-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.users-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* role badges (admin/staff labels) */
+.role-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-badge.admin {
+    background-color: #ffd700;
+    color: #856404;
+}
+
+.role-badge.staff {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+/* action btns in table rows */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 2px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #f5f5f5;
+}
+
+.action-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+}
+
+.action-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* hover colors for each action */
+.edit-btn:hover:not(:disabled) {
+    background-color: #fff3cd;
+}
+
+.role-btn:hover:not(:disabled) {
+    background-color: #d1ecf1;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background-color: #f8d7da;
+}
+
+/* modal overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* modal box */
+.modal-content {
+    background: white;
+    border-radius: 0;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideUp 0.3s;
+}
+
+/* slide up animation for modal */
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* close btn (x in corner) */
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+/* modal heading */
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #51257a;
+    font-family: 'Roboto', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.modal-subtitle {
+    margin: 0 0 25px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* form styles */
+.user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* each form field group */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* cancel/submit btns at bottom of form */
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.btn-cancel {
+    padding: 10px 20px;
+    background-color: #999;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+    background-color: #777;
+}
+
+.btn-submit {
+    padding: 10px 20px;
+    background-color: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+    background-color: #3d1c5c;
+}
+
+.btn-submit:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* bookings tab */
+.bookings-tab {
+    width: 100%;
+}
+
+.bookings-tab h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 22px;
+}
+
+.tab-description {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* booking form containr */
+.booking-form-container {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 0;
+    padding: 25px;
+    margin-bottom: 40px;
+}
+
+.form-section {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+/* hint text next to labels */
+.availability-hint {
+    font-weight: 400;
+    color: #666;
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+/* user select dropdown */
+.user-select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 16px;
+    background-color: white;
+    cursor: pointer;
+}
+
+.user-select:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* date picker */
+.date-input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* parking space selector */
+.space-selector {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* each parking space button */
+.space-btn {
+    width: 80px;
+    height: 80px;
+    border: 2px solid #ddd;
+    border-radius: 2px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    background-color: #e0e0e0;
+    color: #666;
+}
+
+.space-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* neutral - no date picked yet */
+.space-btn.neutral {
+    background-color: #e0e0e0;
+    color: #666;
+}
+
+/* availble space - green */
+.space-btn.available {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+    border-color: #4caf50;
+}
+
+.space-btn.available:hover:not(:disabled) {
+    background-color: #a5d6a7;
+    transform: scale(1.05);
+}
+
+/* occupied space - red */
+.space-btn.occupied {
+    background-color: #ffcdd2;
+    color: #c62828;
+    border-color: #f44336;
+}
+
+.space-btn.occupied:hover:not(:disabled) {
+    background-color: #ef9a9a;
+    transform: scale(1.05);
+}
+
+/* selected space - purple border */
+.space-btn.selected {
+    border-width: 4px;
+    border-color: #51257a;
+    box-shadow: 0 0 0 3px rgba(81, 37, 122, 0.2);
+}
+
+.hint-text {
+    color: #999;
+    font-size: 14px;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* create booking btn */
+.create-booking-btn {
+    width: 100%;
+    padding: 15px;
+    background: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.create-booking-btn:hover:not(:disabled) {
+    background: #3d1c5c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(81, 37, 122, 0.4);
+}
+
+.create-booking-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* bookings table section */
+.current-bookings-section {
+    margin-top: 50px;
+}
+
+.section-description {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.bookings-table th {
+    background-color: #51257a;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border: none;
+}
+
+.bookings-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.bookings-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.email-text {
+    font-size: 12px;
+    color: #999;
+}
+
+/* cancel booking btn */
+.cancel-booking-btn {
+    padding: 8px 16px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cancel-booking-btn:hover {
+    background-color: #da190b;
+}
+
+/* user search dropdown for manual booking */
+.user-search-container {
+    position: relative;
+}
+
+.user-search-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.user-search-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* dropdown that shows matching users */
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-dropdown-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.user-dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.user-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.user-dropdown-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.user-dropdown-email {
+    font-size: 13px;
+    color: #666;
+}
+
+/* shows which user is selected */
+.selected-user-display {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #e8f5e9;
+    border: 1px solid #4caf50;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selected-user-display span {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+/* clear user x btn */
+.clear-user-btn {
+    background: none;
+    border: none;
+    color: #f44336;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.clear-user-btn:hover {
+    color: #d32f2f;
+}
+
+/* filter user dropdown for bookings filter */
+.filter-user-container {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* filter results dropdown */
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.filter-dropdown-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.filter-dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.filter-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.filter-dropdown-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.filter-dropdown-email {
+    font-size: 12px;
+    color: #666;
+}
+
+/* bookings header with export */
+.bookings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.bookings-header h3 {
+    margin: 0;
+}
+
+/* export btn */
+.export-btn {
+    padding: 10px 20px;
+    background: #43a047;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.export-btn:hover {
+    background: #2e7d32;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 160, 71, 0.4);
+}
+
+/* advanced filters for bookings */
+.booking-filters-advanced {
+    display: grid;
+    grid-template-columns: 1fr 1fr 200px;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 0;
+    border: 1px solid #ddd;
+}
+
+.filter-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* date range filter */
+.filter-date-range {
+    display: flex;
+    flex-direction: column;
+}
+
+.date-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.date-range-separator {
+    color: #999;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* space filter */
+.filter-space-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-space-select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 15px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.filter-space-select:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* clear all filters btn */
+.clear-filters-btn {
+    grid-column: 1 / -1;
+    padding: 10px 20px;
+    background-color: #999;
+    color: white;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    justify-self: center;
+    max-width: 200px;
+}
+
+.clear-filters-btn:hover {
+    background-color: #777;
+}
+
+/* results count text */
+.results-info {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* sortable table headers */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sortable:hover {
+    background-color: #3d1c5c !important;
+}
+
+.sortable:active {
+    background-color: #2d1542 !important;
+}
+
+/* selected filter display */
+.selected-filter-display {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: #e8f5e9;
+    border: 1px solid #4caf50;
+    border-radius: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.selected-filter-display span {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+/* clear filter x btn */
+.clear-filter-user-btn {
+    background: none;
+    border: none;
+    color: #f44336;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.clear-filter-user-btn:hover {
+    color: #d32f2f;
+}
+
+/* settings tab */
+.settings-tab {
+    width: 100%;
+}
+
+.settings-tab h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 24px;
+}
+
+/* settings cards */
+.settings-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0;
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.settings-card-header {
+    background: #51257a;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-icon {
+    font-size: 24px;
+}
+
+.settings-card-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.settings-card-body {
+    padding: 25px;
+}
+
+/* each setting row - label on left, control on right */
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.setting-description {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+.setting-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* days input for settings */
+.days-input {
+    width: 80px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.days-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+.days-label {
+    color: #666;
+    font-size: 14px;
+}
+
+/* update btn */
+.update-btn {
+    padding: 10px 20px;
+    background-color: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.update-btn:hover:not(:disabled) {
+    background-color: #3d1c5c;
+}
+
+.update-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* warning message in settings */
+.setting-warning {
+    margin-top: 15px;
+    padding: 12px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 2px;
+    color: #856404;
+    font-size: 14px;
+}
+
+/* space status managment */
+.space-status-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+/* each space status row */
+.space-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.space-status-row:hover {
+    background-color: #f0f0f0;
+}
+
+.space-status-label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.space-number {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+.space-updated {
+    font-size: 12px;
+    color: #999;
+}
+
+.space-status-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* status dropdown */
+.space-status-select {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 180px;
+}
+
+.space-status-select:focus {
+    outline: none;
+}
+
+/* green for availble */
+.space-status-select.status-available {
+    background-color: #e8f5e9;
+    border-color: #4caf50;
+    color: #2e7d32;
+}
+
+/* red for disabled */
+.space-status-select.status-disabled {
+    background-color: #ffebee;
+    border-color: #f44336;
+    color: #c62828;
+}
+
+.space-status-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* stats cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 10px;
+}
+
+/* individual stat card */
+.stat-box {
+    background: #51257a;
+    color: white;
+    padding: 25px;
+    border-radius: 0;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* responsve styles - mobile */
+@media (max-width: 768px) {
+
+    .management-page {
+        padding: 0;
+    }
+
+    /* stack header on mobile */
+    .management-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .management-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .tab-content {
+        padding: 20px;
+    }
+
+    .tab-navigation {
+        flex-wrap: wrap;
+        padding: 0 20px;
+    }
+
+    .tab-btn {
+        font-size: 14px;
+        padding: 12px 15px;
+    }
+
+    /* stack controls on small screens */
+    .users-controls {
+        flex-direction: column;
+    }
+
+    .search-input,
+    .add-user-btn {
+        width: 100%;
+    }
+
+    /* horizontal scroll for table on mobile */
+    .users-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .actions-cell {
+        flex-direction: column;
+    }
+
+    .bookings-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .export-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* single column filters on mobile */
+    .booking-filters-advanced {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .date-range-inputs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .date-range-separator {
+        text-align: center;
+        margin: 5px 0;
+    }
+
+    .clear-filters-btn {
+        max-width: 100%;
+    }
+
+    .space-selector {
+        justify-content: center;
+    }
+
+    /* smaller space btns on mobile */
+    .space-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 20px;
+    }
+
+    .bookings-table {
+        font-size: 12px;
+    }
+
+    .bookings-table th,
+    .bookings-table td {
+        padding: 8px;
+    }
+
+    /* stack settings vertically */
+    .setting-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .setting-control {
+        justify-content: flex-end;
+    }
+
+    .space-status-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .space-status-control {
+        justify-content: stretch;
+    }
+
+    .space-status-select {
+        width: 100%;
+    }
+
+    /* single column stats on mobile */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* tablet backgrond adjustments */
+@media (max-width: 1024px) and (min-width: 769px) {
+
+    .booking-filters-advanced {
+        grid-template-columns: 1fr;
+    }
+}

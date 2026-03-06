@@ -1,0 +1,145 @@
+/* landing page styles */
+
+/* reset defaults */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* main containr - fullscreen centered */
+.landing-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 40px 20px;
+}
+
+/* dark overlay so you can read the text */
+.landing-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+/* white card in the middle */
+.landing-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    padding: 60px 80px;
+    border-radius: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 100%;
+}
+
+/* logo */
+.school-logo {
+    width: 180px;
+    height: auto;
+    margin-bottom: 30px;
+    transition: transform 0.2s ease;
+}
+
+.school-logo img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* heading */
+.landing-container h1 {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #51257a;
+    text-align: center;
+    margin-bottom: 40px;
+    line-height: 1.4;
+}
+
+/* login button */
+.staff-login-btn {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 16px 50px;
+    background-color: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 12px rgba(81, 37, 122, 0.3);
+}
+
+/* hover effect */
+.staff-login-btn:hover {
+    background-color: #3d1c5c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(81, 37, 122, 0.4);
+}
+
+/* click effect */
+.staff-login-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(81, 37, 122, 0.3);
+}
+
+/* tablet */
+@media (max-width: 768px) {
+    .landing-content {
+        padding: 40px 40px;
+        max-width: 90%;
+    }
+
+    .school-logo {
+        width: 140px;
+        margin-bottom: 25px;
+    }
+
+    .landing-container h1 {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+    }
+
+    .staff-login-btn {
+        font-size: 1rem;
+        padding: 14px 40px;
+    }
+}
+
+/* mobile - landng page adjustments */
+@media (max-width: 480px) {
+    .landing-content {
+        padding: 30px 25px;
+    }
+
+    .school-logo {
+        width: 120px;
+        margin-bottom: 20px;
+    }
+
+    .landing-container h1 {
+        font-size: 1.3rem;
+        margin-bottom: 25px;
+    }
+
+    .staff-login-btn {
+        font-size: 0.95rem;
+        padding: 12px 35px;
+        width: 100%;
+    }
+}

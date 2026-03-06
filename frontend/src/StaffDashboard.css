@@ -1,0 +1,208 @@
+/* main dashboard containr */
+.staff-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+/* loading state */
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 20px;
+}
+
+/* dashboard sections */
+.section {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* section titles */
+.section h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+/* date input */
+input[type="date"] {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 0px;
+}
+
+/* reset button */
+.reset-btn {
+    background-color: #757575;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.reset-btn:hover {
+    background-color: #616161;
+}
+
+/* parking spaces grid */
+.spaces-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+/* single parking space */
+.space-box {
+  width: 100px;
+  height: 100px;
+  background-color: #2196F3;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* green when available */
+.space-box.available {
+  background-color: #4CAF50;
+}
+
+/* bookings table */
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+/* table headers */
+.bookings-table th {
+  background-color: #f5f5f5;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+}
+
+/* table cells */
+.bookings-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* cancel btn */
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel-btn:hover {
+  background-color: #da190b;
+}
+
+/* available spaces area */
+.available-spaces {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+/* date picker */
+.date-picker-section {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+}
+
+.date-picker-section label {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+}
+
+.date-picker-section input[type="date"] {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+  max-width: 200px;
+}
+
+/* responsve stuff for mobile */
+@media (max-width: 768px) {
+    .staff-dashboard {
+        padding: 10px;
+    }
+
+    .section {
+        padding: 15px;
+    }
+
+    .bookings-table {
+        font-size: 14px;
+    }
+
+    .bookings-table th,
+    .bookings-table td {
+        padding: 8px;
+    }
+}
+
+/* header section */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #ddd;
+}
+
+/* user info and logout */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 16px;
+  color: #666;
+}
+
+/* logout btn */
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #da190b;
+}

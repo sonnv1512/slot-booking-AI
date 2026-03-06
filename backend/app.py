@@ -3,6 +3,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime, timedelta
+from ai_assistant_service import AIAssistantService
 
 app = Flask(__name__)
 
@@ -19,6 +20,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  #lax means cookies sent on normal
 app.config['SESSION_COOKIE_HTTPONLY'] = False  #set to False for now so javascript can read session, change back for security later
 
 bcrypt = Bcrypt(app)  #password hashing
+assistant_service = AIAssistantService(db_path='database.db')
 
 # ============= PUBLIC ENDPOINTS!!! ============================================
 
@@ -439,6 +441,42 @@ def check_auth():
     
     #not logged in
     return jsonify({'authenticated': False}), 401
+
+
+@app.route('/api/assistant/chat', methods=['POST'])
+def assistant_chat():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'reply': 'Not authenticated'}), 401
+
+    assistant_input = request.get_json() or {}
+    user_message = str(assistant_input.get('message', '')).strip()
+
+    if not user_message:
+        return jsonify({'success': False, 'reply': 'Please enter a message'}), 400
+
+    response_payload, status_code = assistant_service.handle_chat_request(
+        current_user_id=session['user_id'],
+        user_message=user_message,
+        session_store=session
+    )
+    return jsonify(response_payload), status_code
+
+
+@app.route('/api/assistant/confirm', methods=['POST'])
+def assistant_confirm():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'reply': 'Not authenticated'}), 401
+
+    confirm_input = request.get_json() or {}
+    should_confirm = bool(confirm_input.get('confirm'))
+
+    response_payload, status_code = assistant_service.handle_confirmation_request(
+        current_user_id=session['user_id'],
+        should_confirm=should_confirm,
+        session_store=session
+    )
+    return jsonify(response_payload), status_code
+
 
 # ============= ADMIN USER MANAGEMENT ENDPOINTS!!! ============================================
 

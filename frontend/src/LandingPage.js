@@ -12,7 +12,7 @@ function LandingPage() {
         const checkAuth = async () => {
             try {
                 // hit the backend to see if theyre logged in
-                const response = await fetch('http://127.0.0.1:5000/api/check-auth', {
+                const response = await fetch('http://localhost:5000/api/check-auth', {
                     credentials: 'include'  // gotta send the session cookie
                 });
 

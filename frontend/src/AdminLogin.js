@@ -16,7 +16,7 @@ function AdminLogin() {
         const checkAuth = async () => {
             try {
                 // hit the backend to see if theres a session
-                const response = await fetch('http://127.0.0.1:5000/api/check-auth', {
+                const response = await fetch('http://localhost:5000/api/check-auth', {
                     credentials: 'include' // gotta send the cookie
                 });
 
@@ -53,7 +53,7 @@ function AdminLogin() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/login', {
+            const response = await fetch('http://localhost:5000/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

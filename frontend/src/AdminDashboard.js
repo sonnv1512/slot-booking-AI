@@ -21,7 +21,7 @@ function AdminDashboard() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/check-auth', {
+                const response = await fetch('http://localhost:5000/api/check-auth', {
                     credentials: 'include'  // send the session cookie along
                 });
 
@@ -54,7 +54,7 @@ function AdminDashboard() {
     useEffect(() => {
         if (!user) return;  // dont fetch if user isnt authed yet
 
-        fetch(`http://127.0.0.1:5000/api/admin/grid-view?days=${daysToShow}`, {
+        fetch(`http://localhost:5000/api/admin/grid-view?days=${daysToShow}`, {
             credentials: 'include'  // send session cookie
         })
             .then(response => response.json())
@@ -91,7 +91,7 @@ function AdminDashboard() {
     // logout
     const handleLogout = async () => {
         try {
-            await fetch('http://127.0.0.1:5000/api/logout', {
+            await fetch('http://localhost:5000/api/logout', {
                 method: 'POST',
                 credentials: 'include'  // send cookie so backend knows which session to kill
             });

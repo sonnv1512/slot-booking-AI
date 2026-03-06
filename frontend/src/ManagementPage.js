@@ -12,7 +12,7 @@ function ManagementPage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/check-auth', {
+                const response = await fetch('http://localhost:5000/api/check-auth', {
                     credentials: 'include'
                 });
 
@@ -133,7 +133,7 @@ function UsersTab({ currentUserId }) {
     //fetch all users from api
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/users', {
+            const response = await fetch('http://localhost:5000/api/admin/users', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -169,7 +169,7 @@ function UsersTab({ currentUserId }) {
 
         if (confirmed) {
             try {
-                const response = await fetch(`http://127.0.0.1:5000/api/admin/users/${userId}`, {
+                const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -453,7 +453,7 @@ function BookingsTab() {
     //fetch all users
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/users', {
+            const response = await fetch('http://localhost:5000/api/admin/users', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -466,7 +466,7 @@ function BookingsTab() {
     //fetch all bookigns
     const fetchBookings = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/all-bookings', {
+            const response = await fetch('http://localhost:5000/api/admin/all-bookings', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -482,7 +482,7 @@ function BookingsTab() {
     //check which spaces are availble for the date
     const checkAvailability = async (date) => {
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/spaces/available?date=${date}`, {
+            const response = await fetch(`http://localhost:5000/api/spaces/available?date=${date}`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -523,7 +523,7 @@ function BookingsTab() {
         //get booking info
         try {
             const response = await fetch(
-                `http://127.0.0.1:5000/api/admin/booking-info?space=${space}&date=${selectedDate}`,
+                `http://localhost:5000/api/admin/booking-info?space=${space}&date=${selectedDate}`,
                 { credentials: 'include' }
             );
 
@@ -646,7 +646,7 @@ function BookingsTab() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/bookings/manual', {
+            const response = await fetch('http://localhost:5000/api/admin/bookings/manual', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -687,7 +687,7 @@ function BookingsTab() {
 
         if (confirmed) {
             try {
-                const response = await fetch(`http://127.0.0.1:5000/api/bookings/${bookingId}?user_id=1`, {
+                const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}?user_id=1`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -1052,7 +1052,7 @@ function SettingsTab() {
     //fetch all settings from api
     const fetchSettings = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/settings', {
+            const response = await fetch('http://localhost:5000/api/admin/settings', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -1080,7 +1080,7 @@ function SettingsTab() {
         setSaving(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/settings/max-days', {
+            const response = await fetch('http://localhost:5000/api/admin/settings/max-days', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1108,7 +1108,7 @@ function SettingsTab() {
         setSaving(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/settings/space-status', {
+            const response = await fetch('http://localhost:5000/api/admin/settings/space-status', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1276,7 +1276,7 @@ function AddUserModal({ onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/admin/users', {
+            const response = await fetch('http://localhost:5000/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1380,7 +1380,7 @@ function EditUserModal({ user, mode, onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/admin/users/${user.id}/password`, {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}/password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1410,7 +1410,7 @@ function EditUserModal({ user, mode, onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/admin/users/${user.id}/role`, {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}/role`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

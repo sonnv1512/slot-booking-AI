@@ -17,7 +17,7 @@ function StaffLogin() {
         const checkAuth = async () => {
             try {
                 // ask backend if user is logged in
-                const response = await fetch('http://127.0.0.1:5000/api/check-auth', {
+                const response = await fetch('http://localhost:5000/api/check-auth', {
                     credentials: 'include'  // sends session cookie
                 });
 
@@ -55,7 +55,7 @@ function StaffLogin() {
 
         try {
             // send login reuqest to backend
-            const response = await fetch('http://127.0.0.1:5000/api/login', {
+            const response = await fetch('http://localhost:5000/api/login', {
                 method: 'POST',  // sending data
 
                 headers: {       // tell server its json

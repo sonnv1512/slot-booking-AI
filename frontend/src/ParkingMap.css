@@ -19,28 +19,30 @@
     font-size: 24px;
 }
 
-/* grid layout for the parking spaces */
+/* column stack, each group centered */
 .spaces-grid {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    width: fit-content;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
     margin: 0 auto 20px;
+}
+
+/* one border per group — no wrapping so border hugs exactly the cells */
+.slot-group {
+    display: inline-flex;
+    flex-wrap: nowrap;
     border: 2px solid #ddd;
     border-radius: 8px;
     overflow: hidden;
-}
-
-/* row of spaces */
-.grid-row {
-    display: flex;
-    gap: 0;
+    max-width: 100%;
 }
 
 /* each parking space */
 .space-box-grid {
-    width: 150px;
-    height: 100px;
+    width: 110px;
+    aspect-ratio: 3 / 2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -72,11 +74,21 @@
     cursor: not-allowed;
 }
 
-/* hover only on availble spaces */
+/* hover effects for all states */
 .space-box-grid.available:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10;
+}
+
+.space-box-grid.neutral:hover {
+    background-color: rgba(100, 181, 246, 0.8);
+    filter: brightness(0.92);
+}
+
+.space-box-grid.booked:hover {
+    background-color: rgba(189, 9, 9, 0.75);
+    filter: brightness(0.88);
 }
 
 /* show full map button */
@@ -161,19 +173,15 @@
 /* tablets */
 @media (max-width: 1024px) {
     .space-box-grid {
-        width: 130px;
-        height: 87px;
         font-size: 28px;
     }
 }
 
-/* phones */
+/* tablets */
 @media (max-width: 768px) {
-
     .space-box-grid {
-        width: 110px;
-        height: 73px;
-        font-size: 24px;
+        width: 80px;
+        font-size: 22px;
     }
 
     .map-header h2 {
@@ -186,13 +194,11 @@
     }
 }
 
-/* small phones */
+/* phones */
 @media (max-width: 480px) {
-
     .space-box-grid {
-        width: 90px;
-        height: 60px;
-        font-size: 20px;
+        width: 58px;
+        font-size: 16px;
         border-width: 1px;
     }
 

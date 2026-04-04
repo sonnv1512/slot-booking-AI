@@ -1,3 +1,4 @@
+import API_BASE from './config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
@@ -11,34 +12,46 @@ function AdminDashboard() {
     // data stuff
     const [gridData, setGridData] = useState({});
     const [loading, setLoading] = useState(true);
-    const [daysToShow, setDaysToShow] = useState(14);  // how many days we show in the grid
+    const [maxBookingDays, setMaxBookingDays] = useState(14);
+    const [daysToShow, setDaysToShow] = useState(14);
 
-    // modal states to diplsay detailed booking info
-    const [selectedBooking, setSelectedBooking] = useState(null);  // whichever booking the admin clicked on
-    const [showModal, setShowModal] = useState(false);  // whether the modal is visble or not
+    // booking details modal (booked cell)
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // restricted slots toggle
+    const [showRestricted, setShowRestricted] = useState(true);
+    const [slotsMeta, setSlotsMeta] = useState({});  // {slotNumber: {is_restricted}}
+
+    // create booking modal (available cell)
+    const [showBookModal, setShowBookModal] = useState(false);
+    const [bookingCell, setBookingCell] = useState(null);  // {date, space}
+    const [users, setUsers] = useState([]);
+    const [selectedUserId, setSelectedUserId] = useState('');
+    const [bookingLoading, setBookingLoading] = useState(false);
+
+    // user search combobox state
+    const [userSearch, setUserSearch] = useState('');
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
 
     // check auth on page load
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/check-auth', {
-                    credentials: 'include'  // send the session cookie along
+                const response = await fetch(API_BASE + '/api/check-auth', {
+                    credentials: 'include'
                 });
-
                 const data = await response.json();
-
                 if (data.authenticated) {
                     if (data.user.role === 'admin') {
                         setUser(data.user);
                     } else {
-                        // theyre logged in but not admin, send em to staff
                         navigate('/staff-dashboard');
                     }
                 } else {
-                    // not authenticated, redirect to admin login page lmao
                     navigate('/admin-login');
                 }
-
             } catch (error) {
                 console.error('Auth check failed:', error);
                 navigate('/admin-login');
@@ -46,56 +59,163 @@ function AdminDashboard() {
                 setAuthLoading(false);
             }
         };
-
         checkAuth();
     }, [navigate]);
 
-    // grab grid data whenever user or daysToShow changes
-    useEffect(() => {
-        if (!user) return;  // dont fetch if user isnt authed yet
-
-        fetch(`http://localhost:5000/api/admin/grid-view?days=${daysToShow}`, {
-            credentials: 'include'  // send session cookie
+    // fetch grid data - extracted so we can refresh after create/delete
+    const fetchGrid = () => {
+        fetch(`${API_BASE}/api/admin/grid-view?days=${daysToShow}`, {
+            credentials: 'include'
         })
             .then(response => response.json())
             .then(data => {
-                setGridData(data);  // store it
+                setGridData(data);
                 setLoading(false);
             })
             .catch(error => {
                 console.error('Error fetching grid:', error);
                 setLoading(false);
             });
-    }, [user, daysToShow]);  // re-run when these change
-
-    // handle clicking on a booked cell
-    const handleCellClick = (booking, date, space) => {
-        if (booking) {  // only open modal if theres actually a booking there
-            // stick the date and space onto the booking data
-            setSelectedBooking({
-                ...booking,  // spread existing booking stuff
-                date,
-                space
-            });
-            setShowModal(true);  // show it
-        }
-        // if its availble (booking is null) just do nothing
     };
 
-    // close the modal
+    // fetch users for the booking dropdown
+    const fetchUsers = async () => {
+        try {
+            const response = await fetch(API_BASE + '/api/admin/users', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setUsers(data);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    // fetch max booking days setting so the dropdown stays in sync
+    const fetchMaxDays = async () => {
+        try {
+            const response = await fetch(API_BASE + '/api/admin/settings', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setMaxBookingDays(data.max_booking_days);
+            // if current daysToShow exceeds the new max, clamp it
+            setDaysToShow(prev => Math.min(prev, data.max_booking_days));
+        } catch (error) {
+            console.error('Error fetching settings:', error);
+        }
+    };
+
+    // fetch slot metadata (includes is_restricted)
+    const fetchSlotsMeta = async () => {
+        try {
+            const response = await fetch(API_BASE + '/api/admin/slots', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            const meta = {};
+            data.forEach(s => { meta[s.parking_slot_number] = s; });
+            setSlotsMeta(meta);
+        } catch (error) {
+            console.error('Error fetching slots meta:', error);
+        }
+    };
+
+    // grab grid + users whenever user or daysToShow changes
+    useEffect(() => {
+        if (!user) return;
+        fetchGrid();
+        fetchUsers();
+        fetchMaxDays();
+        fetchSlotsMeta();
+    }, [user, daysToShow]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+    // clicking any cell - available opens book modal, booked opens details modal
+    const handleCellClick = (booking, date, space) => {
+        if (booking) {
+            setSelectedBooking({ ...booking, date, space });
+            setShowModal(true);
+        } else {
+            setBookingCell({ date, space });
+            setSelectedUserId('');
+            setUserSearch('');
+            setShowUserDropdown(false);
+            setShowBookModal(true);
+        }
+    };
+
+    // create a booking from the book modal
+    const handleCreateBooking = async () => {
+        if (!selectedUserId) {
+            alert('Please select a user');
+            return;
+        }
+        setBookingLoading(true);
+        try {
+            const response = await fetch(API_BASE + '/api/admin/bookings/manual', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    user_id: parseInt(selectedUserId),
+                    parking_slot_number: bookingCell.space,
+                    booking_date: bookingCell.date,
+                    override: false
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setShowBookModal(false);
+                fetchGrid();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error creating booking:', error);
+            alert('Failed to create booking');
+        } finally {
+            setBookingLoading(false);
+        }
+    };
+
+    // delete a booking from the details modal
+    const handleDeleteBooking = async () => {
+        if (!window.confirm(`Delete booking for ${selectedBooking.user_name} on ${formatDate(selectedBooking.date)}?`)) return;
+        setDeleteLoading(true);
+        try {
+            const response = await fetch(`${API_BASE}/api/admin/bookings/${selectedBooking.booking_id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await response.json();
+            if (data.success) {
+                closeModal();
+                fetchGrid();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            alert('Failed to delete booking');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
+    // close the details modal
     const closeModal = () => {
         setShowModal(false);
-        setSelectedBooking(null);  // clear it out
+        setSelectedBooking(null);
     };
 
     // logout
     const handleLogout = async () => {
         try {
-            await fetch('http://localhost:5000/api/logout', {
+            await fetch(API_BASE + '/api/logout', {
                 method: 'POST',
-                credentials: 'include'  // send cookie so backend knows which session to kill
+                credentials: 'include'
             });
-            navigate('/');  // back to landing page
+            navigate('/');
         } catch (error) {
             console.error('Logout error:', error);
         }
@@ -103,23 +223,34 @@ function AdminDashboard() {
 
     // format date nice like "Mon, Jan 15"
     const formatDate = (dateStr) => {
-        const date = new Date(dateStr + 'T00:00:00');  // add time to avoid timezone weirdness
+        const date = new Date(dateStr + 'T00:00:00');
         const options = { weekday: 'short', month: 'short', day: 'numeric' };
         return date.toLocaleDateString('en-US', options);
     };
 
-    // loading stuff
     if (authLoading) {
         return <div className="loading">Checking authentication...</div>;
     }
 
     if (!user) {
-        return null;  // dont render anyhting, will redirect
+        return null;
     }
 
     if (loading) {
         return <div className="loading">Loading dashboard...</div>;
     }
+
+    // derive slot list from gridData keys (sorted numerically where possible), filtered by showRestricted
+    const slots = Object.keys(gridData).length > 0
+        ? Object.keys(Object.values(gridData)[0])
+            .filter(s => showRestricted || !slotsMeta[s]?.is_restricted)
+            .sort((a, b) => {
+                const aNum = parseInt(a);
+                const bNum = parseInt(b);
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return a.localeCompare(b);
+            })
+        : [];
 
     return (
         <div className="admin-dashboard">
@@ -134,7 +265,6 @@ function AdminDashboard() {
                 </div>
             </div>
 
-
             {/* management button */}
             <div className="section">
                 <button
@@ -146,49 +276,56 @@ function AdminDashboard() {
             </div>
 
             {/* the big grid view */}
-            <div className="section">
+            <div className="section section-fill">
                 <div className="section-header">
                     <h2>At-a-Glance Overview</h2>
-                    {/* dropdown to pick how many days to show */}
-                    <select
-                        value={daysToShow}
-                        onChange={(e) => setDaysToShow(Number(e.target.value))}
-                        className="days-selector"
-                    >
-                        <option value={7}>Next 7 Days</option>
-                        <option value={14}>Next 14 Days</option>
-                    </select>
+                    <div className="header-controls">
+                        <select
+                            value={daysToShow}
+                            onChange={(e) => setDaysToShow(Number(e.target.value))}
+                            className="days-selector"
+                        >
+                            <option value={7}>Next 7 Days</option>
+                            <option value={maxBookingDays}>Next {maxBookingDays} Days</option>
+                        </select>
+                        {Object.values(slotsMeta).some(s => s.is_restricted) && (
+                            <button
+                                className={`restricted-toggle-btn ${showRestricted ? 'active' : ''}`}
+                                onClick={() => setShowRestricted(prev => !prev)}
+                                title={showRestricted ? 'Hide restricted slots' : 'Show restricted slots'}
+                            >
+                                {showRestricted ? '🔒 Hide Restricted' : '🔒 Show Restricted'}
+                            </button>
+                        )}
+                    </div>
                 </div>
+                <p className="grid-hint">Click a green cell to book a space, or a red cell to view / delete the booking.</p>
 
                 <div className="grid-container">
                     <table className="grid-table">
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Space 60</th>
-                                <th>Space 61</th>
-                                <th>Space 62</th>
-                                <th>Space 63</th>
-                                <th>Space 64</th>
-                                <th>Space 65</th>
+                                {slots.map(space => (
+                                    <th key={space} className={slotsMeta[space]?.is_restricted ? 'col-restricted' : ''}>
+                                        Space {space}{slotsMeta[space]?.is_restricted ? ' 🔒' : ''}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody>
-                            {/* loop thru each date */}
                             {Object.keys(gridData).sort().map(date => (
                                 <tr key={date}>
                                     <td className="date-cell">{formatDate(date)}</td>
-                                    {/* loop thru each parking space 60-65 */}
-                                    {['60', '61', '62', '63', '64', '65'].map(space => {
-                                        const booking = gridData[date][space];  // grab booking for this cell, null if availble
+                                    {slots.map(space => {
+                                        const booking = gridData[date][space];
                                         return (
                                             <td
                                                 key={space}
-                                                className={booking ? 'cell-booked' : 'cell-available'}  // red if booked green if free
-                                                onClick={() => handleCellClick(booking, date, space)}  // open modal on click
+                                                className={booking ? 'cell-booked' : 'cell-available'}
+                                                onClick={() => handleCellClick(booking, date, space)}
                                             >
-                                                {/* show first name if booked, nothing if free */}
-                                                {booking ? booking.user_name.split(' ')[0] : ''}
+                                                {booking ? booking.user_name : ''}
                                             </td>
                                         );
                                     })}
@@ -199,52 +336,134 @@ function AdminDashboard() {
                 </div>
             </div>
 
-            {/* booking details modal, only shows when showModal is true */}
+            {/* booking details modal (booked cell) */}
             {showModal && selectedBooking && (
                 <div className="modal-overlay" onClick={closeModal}>
-                    {/* stopPropagation so clicking inside the modal doesnt close it */}
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        {/* close button */}
-                        <button className="modal-close" onClick={closeModal}>
-                            ✕
-                        </button>
+                        <button className="modal-close" onClick={closeModal}>✕</button>
 
                         <h2>Booking Details</h2>
 
-                        {/* diplsay all the booking info */}
                         <div className="modal-info">
                             <div className="info-row">
                                 <span className="info-label">Booking ID:</span>
                                 <span className="info-value">{selectedBooking.booking_id}</span>
                             </div>
-
                             <div className="info-row">
                                 <span className="info-label">Parking Space:</span>
                                 <span className="info-value">Space {selectedBooking.space}</span>
                             </div>
-
                             <div className="info-row">
                                 <span className="info-label">Date:</span>
                                 <span className="info-value">{formatDate(selectedBooking.date)}</span>
                             </div>
-
                             <div className="info-row">
                                 <span className="info-label">User Name:</span>
                                 <span className="info-value">{selectedBooking.user_name}</span>
                             </div>
-
                             <div className="info-row">
                                 <span className="info-label">Email:</span>
                                 <span className="info-value">{selectedBooking.user_email}</span>
                             </div>
                         </div>
 
-                        {/* buttons */}
                         <div className="modal-actions">
                             <button className="btn-close" onClick={closeModal}>
                                 Close
                             </button>
-                            {/* maybe add delete/edit buttons here later */}
+                            <button
+                                className="btn-delete"
+                                onClick={handleDeleteBooking}
+                                disabled={deleteLoading}
+                            >
+                                {deleteLoading ? 'Deleting...' : 'Delete Booking'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* create booking modal (available cell) */}
+            {showBookModal && bookingCell && (
+                <div className="modal-overlay" onClick={() => setShowBookModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-close" onClick={() => setShowBookModal(false)}>✕</button>
+
+                        <h2>Book This Space</h2>
+
+                        <div className="modal-info">
+                            <div className="info-row">
+                                <span className="info-label">Space:</span>
+                                <span className="info-value">Space {bookingCell.space}</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="info-label">Date:</span>
+                                <span className="info-value">{formatDate(bookingCell.date)}</span>
+                            </div>
+                        </div>
+
+                        <div className="book-form">
+                            <label className="book-form-label">Assign to User:</label>
+                            <div className="user-search-wrapper">
+                                <input
+                                    type="text"
+                                    className="user-search-input"
+                                    placeholder="Search by name or email..."
+                                    value={userSearch}
+                                    onChange={(e) => {
+                                        setUserSearch(e.target.value);
+                                        setSelectedUserId('');
+                                        setShowUserDropdown(true);
+                                    }}
+                                    onFocus={() => setShowUserDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowUserDropdown(false), 150)}
+                                    autoComplete="off"
+                                />
+                                {showUserDropdown && (
+                                    <div className="user-search-dropdown">
+                                        {users
+                                            .filter(u =>
+                                                u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                                                u.email.toLowerCase().includes(userSearch.toLowerCase())
+                                            )
+                                            .slice(0, 50)
+                                            .map(u => (
+                                                <div
+                                                    key={u.id}
+                                                    className="user-search-option"
+                                                    onMouseDown={() => {
+                                                        setSelectedUserId(u.id);
+                                                        setUserSearch(`${u.name} (${u.email})`);
+                                                        setShowUserDropdown(false);
+                                                    }}
+                                                >
+                                                    <span className="user-option-name">{u.name}</span>
+                                                    <span className="user-option-email">{u.email}</span>
+                                                </div>
+                                            ))
+                                        }
+                                        {users.filter(u =>
+                                            u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                                            u.email.toLowerCase().includes(userSearch.toLowerCase())
+                                        ).length === 0 && (
+                                            <div className="user-search-empty">No users found</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn-close" onClick={() => setShowBookModal(false)}>
+                                Cancel
+                            </button>
+                            <button
+                                className="btn-book"
+                                onClick={handleCreateBooking}
+                                disabled={bookingLoading || !selectedUserId}
+                            >
+                                {bookingLoading ? 'Booking...' : 'Create Booking'}
+                            </button>
                         </div>
                     </div>
                 </div>

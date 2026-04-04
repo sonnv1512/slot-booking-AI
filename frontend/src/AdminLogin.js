@@ -1,3 +1,4 @@
+import API_BASE from './config';
 import { useState, useEffect } from 'react'; // need useEffect for auth check
 import { useNavigate } from 'react-router-dom';
 import './AdminLogin.css'; // admin specific styles
@@ -16,7 +17,7 @@ function AdminLogin() {
         const checkAuth = async () => {
             try {
                 // hit the backend to see if theres a session
-                const response = await fetch('http://localhost:5000/api/check-auth', {
+                const response = await fetch(API_BASE + '/api/check-auth', {
                     credentials: 'include' // gotta send the cookie
                 });
 
@@ -53,7 +54,7 @@ function AdminLogin() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch(API_BASE + '/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

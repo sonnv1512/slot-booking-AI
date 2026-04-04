@@ -8,6 +8,8 @@
     font-family: 'Open Sans', sans-serif;
     background: white;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* header bar */
@@ -95,6 +97,7 @@
     border-radius: 0;
     padding: 30px 40px;
     min-height: 500px;
+    flex: 1;
 }
 
 /* loading state */
@@ -150,6 +153,246 @@
     background: #3d1c5c;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(81, 37, 122, 0.3);
+}
+
+/* import csv button */
+.import-csv-btn {
+    padding: 12px 20px;
+    background: #3cb2a9;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.import-csv-btn:hover {
+    background: #2d8a83;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(60, 178, 169, 0.3);
+}
+
+/* ---- import csv modal ---- */
+
+.import-modal-content {
+    max-width: 640px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* format info box */
+.import-format-box {
+    background: #f5f0fa;
+    border-left: 4px solid #51257a;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.import-format-title {
+    font-weight: 700;
+    color: #51257a;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.import-format-desc {
+    margin: 0 0 10px;
+    color: #555;
+}
+
+.import-format-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.import-format-table th,
+.import-format-table td {
+    border: 1px solid #d0b8e8;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.import-format-table th {
+    background: #51257a;
+    color: white;
+    font-weight: 600;
+}
+
+.import-format-table td {
+    background: white;
+    color: #333;
+}
+
+.import-format-note {
+    margin: 6px 0 0;
+    color: #666;
+    font-size: 12px;
+}
+
+/* file picker */
+.import-file-section {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.import-file-label {
+    display: inline-block;
+    cursor: pointer;
+}
+
+.import-file-btn-text {
+    display: inline-block;
+    padding: 10px 18px;
+    background: #51257a;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.import-file-label:hover .import-file-btn-text {
+    background: #3d1c5c;
+}
+
+.import-file-input {
+    display: none;
+}
+
+.import-file-name {
+    font-size: 13px;
+    color: #555;
+    font-style: italic;
+}
+
+/* preview */
+.import-preview-summary {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+.import-valid-count { color: #2e7d32; font-weight: 700; }
+.import-invalid-count { color: #c62828; font-weight: 700; }
+
+.import-preview-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin-bottom: 18px;
+}
+
+.import-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.import-preview-table th {
+    background: #51257a;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+}
+
+.import-preview-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.import-row-ok { background: #f1fdf1; }
+.import-row-error { background: #fff5f5; }
+
+.import-error-msg { color: #c62828; font-size: 12px; }
+.import-ok-msg { color: #2e7d32; font-weight: 700; }
+
+.import-empty-msg {
+    color: #888;
+    font-style: italic;
+    margin-bottom: 16px;
+}
+
+/* results */
+.import-results {
+    background: #f5f0fa;
+    border: 1px solid #d0b8e8;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.import-results-created {
+    color: #2e7d32;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.import-results-skipped-title {
+    color: #b45309;
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+
+.import-skipped-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #555;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+/* modal action row */
+.modal-actions-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.modal-cancel-btn {
+    padding: 11px 22px;
+    background: #eee;
+    color: #333;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    transition: background 0.2s;
+}
+
+.modal-cancel-btn:hover { background: #ddd; }
+
+.modal-submit-btn {
+    padding: 11px 22px;
+    background: #51257a;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    transition: background 0.2s;
+}
+
+.modal-submit-btn:hover { background: #3d1c5c; }
+
+.modal-submit-btn:disabled {
+    background: #b39ddb;
+    cursor: not-allowed;
 }
 
 /* users table */
@@ -1350,5 +1593,319 @@
 
     .booking-filters-advanced {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ===== PARKING SLOTS TAB ===== */
+
+.parking-slots-management {
+    padding: 20px;
+}
+
+.management-section {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 25px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #333;
+}
+
+/* Slots Grid */
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.slots-grid-row {
+    display: contents;
+}
+
+.slot-block {
+    position: relative;
+    background: #f5f5f5;
+    border: 2px solid #51257a;
+    border-radius: 8px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    aspect-ratio: 1;
+    min-height: 120px;
+}
+
+.slot-block:hover {
+    background: #efefef;
+    transform: scale(1.02);
+}
+
+.slot-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #51257a;
+}
+
+.add-slot-block {
+    background: #f9f9f9;
+    border: 2px dashed #51257a;
+    cursor: pointer;
+}
+
+.add-slot-block:hover {
+    background: #f0f0f0;
+    transform: none;
+}
+
+.add-slot-button {
+    font-size: 3rem;
+    color: #51257a;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+
+.add-slot-block:hover .add-slot-button {
+    transform: scale(1.15);
+}
+
+/* restricted slot styling */
+.slot-block.slot-restricted {
+    background: #f5eefa;
+    border-color: #9b59b6;
+}
+
+.restricted-badge {
+    font-size: 1rem;
+    margin-left: 4px;
+}
+
+/* edit action buttons container */
+.slot-edit-actions {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: flex;
+    gap: 4px;
+}
+
+/* restrict toggle button on slot */
+.slot-restrict-btn {
+    width: 28px;
+    height: 28px;
+    background: #9b59b6;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.slot-restrict-btn.is-restricted {
+    background: #27ae60;
+}
+
+.slot-restrict-btn:hover {
+    transform: scale(1.1);
+}
+
+/* inline add slot form */
+.add-slot-form {
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    cursor: default;
+    min-height: 120px;
+    justify-content: center;
+}
+
+.add-slot-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.add-slot-restricted-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.add-slot-form-btns {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.add-slot-confirm-btn {
+    width: 32px;
+    height: 32px;
+    background: #27ae60;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-slot-confirm-btn:hover { background: #1e8449; }
+
+.add-slot-cancel-btn {
+    width: 32px;
+    height: 32px;
+    background: #e74c3c;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-slot-cancel-btn:hover { background: #c0392b; }
+
+/* Delete button on slot */
+.slot-delete-btn {
+    width: 28px;
+    height: 28px;
+    background: #e74c3c;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.slot-delete-btn:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+}
+
+/* Edit mode info */
+.edit-mode-info {
+    background: #e8f4f8;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+    color: #2c3e50;
+}
+
+.edit-mode-info p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.edit-mode-info strong {
+    color: #51257a;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.empty-state p {
+    margin: 10px 0;
+    font-size: 1rem;
+}
+
+/* Edit button styling */
+.btn-primary {
+    background: #51257a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background: #3d1d5a;
+}
+
+.btn-primary.editing {
+    background: #27ae60;
+}
+
+.btn-primary.editing:hover {
+    background: #229954;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .slots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .slot-block {
+        padding: 20px;
+        min-height: 100px;
+    }
+
+    .slot-number {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .slots-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .slot-block {
+        padding: 15px;
+        min-height: 80px;
+    }
+
+    .slot-number {
+        font-size: 1.3rem;
     }
 }

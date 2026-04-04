@@ -1,1 +1,24 @@
+# Claude Code local state
+.claude/
+
+# macOS
+.DS_Store
+
+# Lock files (temp Word/LibreOffice)
+~$*
+
+# Python
+__pycache__/
 *.pyc
+backend/venv/
+
+# Node
+node_modules/
+
+# SQLite database (contains real user data — do not commit)
+backend/database.db
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production

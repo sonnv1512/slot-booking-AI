@@ -2,35 +2,31 @@ from flask import Flask, jsonify, request, session
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import sqlite3
+import os
 from datetime import datetime, timedelta
-from ai_assistant_service import AIAssistantService
 
 app = Flask(__name__)
 
-#cors stuff - lets react talk to flask since theyre on different ports
+# cors - reads allowed origin from env var, falls back to localhost for dev
+CORS_ORIGIN = os.environ.get('CORS_ORIGIN', 'http://127.0.0.1:3000')
 CORS(app,
-     supports_credentials=True,  #cookies can go between react and flask
-     origins=['http://127.0.0.1:3000', 'http://localhost:3000'],  #only react can make requests
-     allow_headers=['Content-Type'],  #so we can send json data
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])  #http methods we need, OPTIONS is the browsers preflight check thing
+     supports_credentials=True,
+     origins=[CORS_ORIGIN],
+     allow_headers=['Content-Type'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
-#session config - keeps track of whos logged in
-app.secret_key = 'parking-booking-secret-key-change-in-production'  #secret key for sessions, shoudl change this later for production
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  #lax means cookies sent on normal requests but blocked on sketchy cross-site ones
-app.config['SESSION_COOKIE_HTTPONLY'] = False  #set to False for now so javascript can read session, change back for security later
+# session config - secret key from env var (MUST be set in production)
+app.secret_key = os.environ.get('SECRET_KEY', 'parking-booking-dev-key-change-in-production')
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 bcrypt = Bcrypt(app)  #password hashing
-assistant_service = AIAssistantService(db_path='database.db')
 
 # ============= PUBLIC ENDPOINTS!!! ============================================
 
 @app.route('/')
 def home():
     return "Parking Booking System API"
-
-@app.route('/test')
-def index():
-    return 'alo alo 123'
 
 @app.route('/api/spaces') #get parking_slot spaces / numbers yada yada
 def get_parking_spaces():
@@ -39,7 +35,7 @@ def get_parking_spaces():
     db_conn = sqlite3.connect('database.db') #opens connection to the database
     db_conn.row_factory = sqlite3.Row #method to be able to access column by name
     db_cursor = db_conn.cursor() #cursor is like the command
-    db_cursor.execute('SELECT * FROM parking_slots')
+    db_cursor.execute('SELECT * FROM parking_slots WHERE is_restricted = 0')
     fetched_slots = db_cursor.fetchall() #dumps results to fetched_slots
     db_conn.close() #closes connection
 
@@ -230,11 +226,12 @@ def get_available_spaces():
     db_conn = sqlite3.connect('database.db')
     db_cursor = db_conn.cursor()
 
-    #find spots that arent booked and arent out of service
+    #find spots that arent booked, arent out of service, and arent restricted
     db_cursor.execute('''
         SELECT parking_slot_number
         FROM parking_slots
-        WHERE parking_slot_number NOT IN (
+        WHERE is_restricted = 0
+        AND parking_slot_number NOT IN (
             SELECT parking_slot_number
             FROM bookings
             WHERE booking_date = ?
@@ -422,12 +419,6 @@ def get_all_bookings():
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
     #see if theyre logged in
-    print("=== CHECK AUTH CALLED ===")
-    print(f"Session contents: {dict(session)}")
-    print(f"Has user_id: {'user_id' in session}")
-    print(f"Cookies received: {request.cookies}")
-    print("========================")
-
     if 'user_id' in session:
         #send back their info
         return jsonify({
@@ -441,42 +432,6 @@ def check_auth():
     
     #not logged in
     return jsonify({'authenticated': False}), 401
-
-
-@app.route('/api/assistant/chat', methods=['POST'])
-def assistant_chat():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'reply': 'Not authenticated'}), 401
-
-    assistant_input = request.get_json() or {}
-    user_message = str(assistant_input.get('message', '')).strip()
-
-    if not user_message:
-        return jsonify({'success': False, 'reply': 'Please enter a message'}), 400
-
-    response_payload, status_code = assistant_service.handle_chat_request(
-        current_user_id=session['user_id'],
-        user_message=user_message,
-        session_store=session
-    )
-    return jsonify(response_payload), status_code
-
-
-@app.route('/api/assistant/confirm', methods=['POST'])
-def assistant_confirm():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'reply': 'Not authenticated'}), 401
-
-    confirm_input = request.get_json() or {}
-    should_confirm = bool(confirm_input.get('confirm'))
-
-    response_payload, status_code = assistant_service.handle_confirmation_request(
-        current_user_id=session['user_id'],
-        should_confirm=should_confirm,
-        session_store=session
-    )
-    return jsonify(response_payload), status_code
-
 
 # ============= ADMIN USER MANAGEMENT ENDPOINTS!!! ============================================
 
@@ -501,6 +456,10 @@ def get_booking_grid():
     db_conn.row_factory = sqlite3.Row
     db_cursor = db_conn.cursor()
 
+    #grab all parking slots from db
+    db_cursor.execute('SELECT parking_slot_number FROM parking_slots')
+    all_slots = [str(row['parking_slot_number']) for row in db_cursor.fetchall()]
+
     #grab bookings within the date range
     range_end_date = todays_date + timedelta(days=day_range)
 
@@ -520,20 +479,13 @@ def get_booking_grid():
     bookings_in_range = db_cursor.fetchall()
     db_conn.close()
 
-    #build the grid - each date has all 6 spaces
+    #build the grid - each date has all slots from db
     booking_calendar = {}
 
     #fill in empty grid first
     for i in range(day_range):
         calendar_date = (todays_date + timedelta(days=i)).isoformat()
-        booking_calendar[calendar_date] = {
-            '60': None,
-            '61': None,
-            '62': None,
-            '63': None,
-            '64': None,
-            '65': None
-        }
+        booking_calendar[calendar_date] = {slot: None for slot in all_slots}
 
     #now put the actual bookings in
     for each_booking in bookings_in_range:
@@ -647,6 +599,65 @@ def create_user():
         'user_id': created_user_id,
         'message': 'User created successfully'
     })
+
+
+#admin bulk-imports users from csv
+@app.route('/api/admin/users/import', methods=['POST'])
+def import_users():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    import_data = request.get_json()
+    users_to_import = import_data.get('users', [])
+
+    if not users_to_import:
+        return jsonify({'error': 'No users provided'}), 400
+
+    db_conn = sqlite3.connect('database.db')
+    db_conn.row_factory = sqlite3.Row
+    db_cursor = db_conn.cursor()
+
+    created = 0
+    skipped = []
+
+    for user in users_to_import:
+        name     = str(user.get('name', '')).strip()
+        email    = str(user.get('email', '')).strip()
+        password = str(user.get('password', '')).strip()
+        role     = str(user.get('role', '')).strip().lower()
+
+        if not name:
+            skipped.append({'email': email or '(empty)', 'reason': 'Missing name'})
+            continue
+        if not email or '@' not in email:
+            skipped.append({'email': email or '(empty)', 'reason': 'Invalid or missing email'})
+            continue
+        if not password:
+            skipped.append({'email': email, 'reason': 'Missing password'})
+            continue
+        if role not in ['staff', 'admin']:
+            skipped.append({'email': email, 'reason': f'Invalid role "{role}" — must be staff or admin'})
+            continue
+
+        db_cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        if db_cursor.fetchone():
+            skipped.append({'email': email, 'reason': 'Email already exists'})
+            continue
+
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        db_cursor.execute(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            (name, email, hashed_pw, role)
+        )
+        created += 1
+
+    db_conn.commit()
+    db_conn.close()
+
+    return jsonify({'success': True, 'created': created, 'skipped': skipped})
 
 
 #admin deletes a user
@@ -793,6 +804,171 @@ def change_user_role(user_id):
         'message': f'User role updated to {updated_role}'
     })
 
+
+#admin gets all slots including restricted ones (with is_restricted flag)
+@app.route('/api/admin/slots', methods=['GET'])
+def get_all_slots_admin():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    db_conn = sqlite3.connect('database.db')
+    db_conn.row_factory = sqlite3.Row
+    db_cursor = db_conn.cursor()
+    db_cursor.execute('SELECT parking_slot_number, is_restricted FROM parking_slots')
+    rows = db_cursor.fetchall()
+    db_conn.close()
+
+    return jsonify([{
+        'parking_slot_number': row['parking_slot_number'],
+        'is_restricted': bool(row['is_restricted'])
+    } for row in rows])
+
+
+#admin toggles restricted status on a slot
+@app.route('/api/admin/parking-slots/<string:parking_slot_number>/restricted', methods=['PUT'])
+def toggle_slot_restricted(parking_slot_number):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    data = request.get_json()
+    if 'is_restricted' not in data:
+        return jsonify({'error': 'Missing is_restricted field'}), 400
+
+    is_restricted = 1 if data['is_restricted'] else 0
+
+    db_conn = sqlite3.connect('database.db')
+    db_conn.row_factory = sqlite3.Row
+    db_cursor = db_conn.cursor()
+
+    db_cursor.execute('SELECT 1 FROM parking_slots WHERE parking_slot_number = ?', (parking_slot_number,))
+    if not db_cursor.fetchone():
+        db_conn.close()
+        return jsonify({'error': 'Slot not found'}), 404
+
+    db_cursor.execute('UPDATE parking_slots SET is_restricted = ? WHERE parking_slot_number = ?',
+                      (is_restricted, parking_slot_number))
+    db_conn.commit()
+    db_conn.close()
+
+    label = 'restricted' if is_restricted else 'unrestricted'
+    return jsonify({'success': True, 'message': f'Slot {parking_slot_number} is now {label}'})
+
+
+#admin creates a new parking slot
+@app.route('/api/admin/parking-slots', methods=['POST'])
+def create_parking_slot():
+    #auth check
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    #get the new slot data
+    slot_data = request.get_json()
+
+    #make sure slot_number field is there
+    if 'parking_slot_number' not in slot_data:
+        return jsonify({'error': 'Missing field: parking_slot_number'}), 400
+
+    parking_slot_number = slot_data['parking_slot_number']
+
+    #validate it's not empty and is alphanumeric
+    parking_slot_str = str(parking_slot_number).strip()
+
+    if not parking_slot_str:
+        return jsonify({'error': 'parking_slot_number cannot be empty'}), 400
+
+    #allow alphanumeric (letters and numbers), no special chars
+    if not parking_slot_str.replace(' ', '').isalnum():
+        return jsonify({'error': 'parking_slot_number can only contain letters and numbers'}), 400
+
+    #max length of 20 chars
+    if len(parking_slot_str) > 20:
+        return jsonify({'error': 'parking_slot_number cannot exceed 20 characters'}), 400
+
+    #connect to db
+    db_conn = sqlite3.connect('database.db')
+    db_conn.row_factory = sqlite3.Row
+    db_cursor = db_conn.cursor()
+
+    #check if slot already exists
+    db_cursor.execute('SELECT * FROM parking_slots WHERE parking_slot_number = ?', (parking_slot_number,))
+    duplicate_check = db_cursor.fetchone()
+
+    if duplicate_check:
+        db_conn.close()
+        return jsonify({'error': 'Parking slot already exists'}), 409
+
+    is_restricted = 1 if slot_data.get('is_restricted') else 0
+
+    #insert into parking_slots table
+    db_cursor.execute('''
+        INSERT INTO parking_slots (parking_slot_number, is_restricted)
+        VALUES (?, ?)
+    ''', (parking_slot_number, is_restricted))
+
+    #insert into parking_space_status table with default 'available' status
+    db_cursor.execute('''
+        INSERT INTO parking_space_status (parking_slot_number, status, updated_at)
+        VALUES (?, 'available', datetime('now'))
+    ''', (parking_slot_number,))
+
+    db_conn.commit()
+    db_conn.close()
+
+    return jsonify({
+        'success': True,
+        'parking_slot_number': parking_slot_number,
+        'message': f'Parking slot {parking_slot_number} created successfully'
+    })
+
+
+#admin deletes a parking slot
+@app.route('/api/admin/parking-slots/<string:parking_slot_number>', methods=['DELETE'])
+def delete_parking_slot(parking_slot_number):
+    #auth check
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    #connect to db
+    db_conn = sqlite3.connect('database.db')
+    db_conn.row_factory = sqlite3.Row
+    db_cursor = db_conn.cursor()
+
+    #does the slot exist
+    db_cursor.execute('SELECT * FROM parking_slots WHERE parking_slot_number = ?', (parking_slot_number,))
+    target_slot = db_cursor.fetchone()
+
+    if not target_slot:
+        db_conn.close()
+        return jsonify({'error': 'Parking slot not found'}), 404
+
+    #cascade delete: delete bookings for this slot first
+    db_cursor.execute('DELETE FROM bookings WHERE parking_slot_number = ?', (parking_slot_number,))
+
+    #delete the space status record
+    db_cursor.execute('DELETE FROM parking_space_status WHERE parking_slot_number = ?', (parking_slot_number,))
+
+    #delete the parking slot
+    db_cursor.execute('DELETE FROM parking_slots WHERE parking_slot_number = ?', (parking_slot_number,))
+
+    db_conn.commit()
+    db_conn.close()
+
+    return jsonify({
+        'success': True,
+        'message': f'Parking slot {parking_slot_number} deleted successfully'
+    })
+
+
 #admin can manually book a spot, can also override exisitng bookings
 @app.route('/api/admin/bookings/manual', methods=['POST'])
 def admin_manual_booking():
@@ -888,6 +1064,30 @@ def admin_manual_booking():
         'booking_id': new_booking_id,
         'message': 'Booking created successfully' + (' (overridden existing booking)' if should_override else '')
     })
+
+#admin deletes any booking by id
+@app.route('/api/admin/bookings/<int:booking_id>', methods=['DELETE'])
+def admin_delete_booking(booking_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    db_conn = sqlite3.connect('database.db')
+    db_cursor = db_conn.cursor()
+
+    db_cursor.execute('SELECT * FROM bookings WHERE booking_id = ?', (booking_id,))
+    if not db_cursor.fetchone():
+        db_conn.close()
+        return jsonify({'error': 'Booking not found'}), 404
+
+    db_cursor.execute('DELETE FROM bookings WHERE booking_id = ?', (booking_id,))
+    db_conn.commit()
+    db_conn.close()
+
+    return jsonify({'success': True, 'message': 'Booking deleted successfully'})
+
 
 #booking info for the hover popup on admin grid
 @app.route('/api/admin/booking-info', methods=['GET'])
@@ -1068,12 +1268,14 @@ def update_space_status():
     if new_bay_status not in ['available', 'out_of_service']:
         return jsonify({'error': 'Invalid status. Must be "available" or "out_of_service"'}), 400
 
-    #space numebr has to be 60-65
-    if target_bay_number not in range(60, 66):
-        return jsonify({'error': 'Invalid parking slot number'}), 400
-
     db_conn = sqlite3.connect('database.db')
     db_cursor = db_conn.cursor()
+
+    #check slot exists in db
+    db_cursor.execute('SELECT 1 FROM parking_slots WHERE parking_slot_number = ?', (str(target_bay_number),))
+    if not db_cursor.fetchone():
+        db_conn.close()
+        return jsonify({'error': 'Invalid parking slot number'}), 400
 
     db_cursor.execute('''
         INSERT OR REPLACE INTO parking_space_status (parking_slot_number, status, updated_at)
@@ -1090,4 +1292,6 @@ def update_space_status():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=debug_mode, port=port)

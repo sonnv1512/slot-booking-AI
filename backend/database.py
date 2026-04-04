@@ -10,7 +10,7 @@ def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    # create users table
+    # users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,20 +21,20 @@ def init_db():
         )
     ''')
 
-    # create parking slots table
+    # parking slots table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS parking_slots (
-        parking_slot_number INTEGER PRIMARY KEY
+            parking_slot_number TEXT PRIMARY KEY,
+            is_restricted INTEGER NOT NULL DEFAULT 0
         )
-
     ''')
 
-    # create bookings table
+    # bookings table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            parking_slot_number INTEGER NOT NULL,
+            parking_slot_number TEXT NOT NULL,
             created_at TEXT NOT NULL,
             booking_date TEXT NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id),
@@ -42,19 +42,46 @@ def init_db():
         )
     ''')
 
+    # settings table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            setting_key TEXT PRIMARY KEY,
+            setting_value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    ''')
 
+    # parking space status table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS parking_space_status (
+            parking_slot_number TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'available',
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (parking_slot_number) REFERENCES parking_slots(parking_slot_number)
+        )
+    ''')
 
-    # insert the 6 parking spots (60-65)
-    parking_slots = [60, 61, 62, 63, 64, 65]
-
+    # default parking slots
+    parking_slots = ['60', '61', '62', '63', '64', '65']
     for slot in parking_slots:
         cursor.execute('''
-            INSERT OR IGNORE INTO parking_slots (parking_slot_number)
-            VALUES (?)
+            INSERT OR IGNORE INTO parking_slots (parking_slot_number) VALUES (?)
         ''', (slot,))
 
-    # add test users with hashed paswords
+    # default space statuses
+    for slot in parking_slots:
+        cursor.execute('''
+            INSERT OR IGNORE INTO parking_space_status (parking_slot_number, status, updated_at)
+            VALUES (?, 'available', datetime('now'))
+        ''', (slot,))
 
+    # default settings
+    cursor.execute('''
+        INSERT OR IGNORE INTO settings (setting_key, setting_value, updated_at)
+        VALUES ('max_booking_days', '14', datetime('now'))
+    ''')
+
+    # default users
     staff_password = bcrypt.generate_password_hash('password123').decode('utf-8')
     admin_password = bcrypt.generate_password_hash('adminpass').decode('utf-8')
 
@@ -67,38 +94,6 @@ def init_db():
         INSERT OR IGNORE INTO users (name, email, password, role)
         VALUES (?, ?, ?, ?)
     ''', ('Mr Hampson', 'hampson@school.com', admin_password, 'admin'))
-
-    # settings table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            setting_key TEXT PRIMARY KEY,
-            setting_value TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-    ''')
-
-    # chuck in default settings
-    cursor.execute('''
-        INSERT OR IGNORE INTO settings (setting_key, setting_value, updated_at)
-        VALUES ('max_booking_days', '14', datetime('now'))
-    ''')
-
-    # parking space status tabel
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS parking_space_status (
-            parking_slot_number INTEGER PRIMARY KEY,
-            status TEXT NOT NULL DEFAULT 'available',
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (parking_slot_number) REFERENCES parking_slots(parking_slot_number)
-        )
-    ''')
-
-    # set all spaces to availble by default
-    for space in range(60, 66):
-        cursor.execute('''
-            INSERT OR IGNORE INTO parking_space_status (parking_slot_number, status, updated_at)
-            VALUES (?, 'available', datetime('now'))
-        ''', (space,))
 
     # save it all
     conn.commit()

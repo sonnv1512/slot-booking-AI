@@ -1,3 +1,4 @@
+import API_BASE from './config';
 import { useState, useEffect } from 'react';  // added useEffect
 import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
@@ -12,7 +13,7 @@ function LandingPage() {
         const checkAuth = async () => {
             try {
                 // hit the backend to see if theyre logged in
-                const response = await fetch('http://localhost:5000/api/check-auth', {
+                const response = await fetch(API_BASE + '/api/check-auth', {
                     credentials: 'include'  // gotta send the session cookie
                 });
 
@@ -82,6 +83,10 @@ function LandingPage() {
             className="landing-container"
             style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/images/school-background-image.jpg)` }}
         >
+            {/* credits section */}
+            <div className="credits">
+                <p>Created by Nam Khánh Aeter Vũ (Year 12 - 2026)</p>
+            </div>
             {/* white card on top of the bg */}
             <div className="landing-content">
                 {/* school logo, triple click for sneaky admin access */}

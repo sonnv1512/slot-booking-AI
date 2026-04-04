@@ -8,6 +8,13 @@
     font-family: 'Open Sans', sans-serif;
     background: white;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* the grid section fills all remaining vertical space */
+.section-fill {
+    flex: 1;
 }
 
 /* header bar */
@@ -81,6 +88,44 @@
     margin-bottom: 20px;
 }
 
+/* header controls row (days selector + restricted toggle) */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* restricted slots toggle button */
+.restricted-toggle-btn {
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 0;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.restricted-toggle-btn:hover {
+    border-color: #51257a;
+    color: #51257a;
+}
+
+.restricted-toggle-btn.active {
+    background: #51257a;
+    border-color: #51257a;
+    color: white;
+}
+
+/* restricted column header */
+.col-restricted {
+    background: rgba(81, 37, 122, 0.08);
+    color: #51257a;
+}
+
 /* days dropdown */
 .days-selector {
     padding: 10px 15px;
@@ -140,12 +185,25 @@
     min-width: 120px;
 }
 
-/* available slot - green */
+/* hint text below the header */
+.grid-hint {
+    margin: -10px 0 15px;
+    color: #888;
+    font-size: 13px;
+}
+
+/* available slot - green, clickable */
 .cell-available {
     background-color: #c8e6c9;
     color: #2e7d32;
     font-size: 24px;
     font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.cell-available:hover {
+    background-color: #a5d6a7;
 }
 
 /* booked slot - red, shows the persons name */
@@ -323,7 +381,7 @@
     justify-content: flex-end;
 }
 
-/* close btn at the botom */
+/* close / cancel btn */
 .btn-close {
     padding: 12px 24px;
     background-color: #51257a;
@@ -338,6 +396,153 @@
 
 .btn-close:hover {
     background-color: #3d1c5c;
+}
+
+/* delete booking btn - red */
+.btn-delete {
+    padding: 12px 24px;
+    background-color: #c62828;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 600;
+}
+
+.btn-delete:hover {
+    background-color: #b71c1c;
+}
+
+.btn-delete:disabled {
+    background-color: #e57373;
+    cursor: not-allowed;
+}
+
+/* create booking btn - teal */
+.btn-book {
+    padding: 12px 24px;
+    background-color: #3cb2a9;
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 600;
+}
+
+.btn-book:hover {
+    background-color: #2d8a83;
+}
+
+.btn-book:disabled {
+    background-color: #80cbc4;
+    cursor: not-allowed;
+}
+
+/* user select form inside book modal */
+.book-form {
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.book-form-label {
+    font-weight: 600;
+    color: #555;
+    font-size: 14px;
+}
+
+.book-user-select {
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 0;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.book-user-select:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+/* searchable user combobox */
+.user-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.user-search-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.user-search-input:focus {
+    outline: none;
+    border-color: #51257a;
+}
+
+.user-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #51257a;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.user-search-option {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+
+.user-search-option:hover {
+    background: #f3eafa;
+}
+
+.user-search-option:last-child {
+    border-bottom: none;
+}
+
+.user-option-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #222;
+}
+
+.user-option-email {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.user-search-empty {
+    padding: 12px;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
 }
 
 /* mobile responsive */

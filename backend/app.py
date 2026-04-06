@@ -64,6 +64,76 @@ def ai_health_check():
             'is_healthy': False
         }), 500
 
+
+@app.route('/api/ai/status', methods=['GET'])
+def ai_status():
+    """
+    Status endpoint for AI service.
+    
+    Returns:
+        - provider: current provider type ("local" or "external")
+        - model_name: name of loaded model
+        - is_loaded: whether model is loaded in memory
+        - is_healthy: health status
+    
+    Note: This is an alias for /api/ai/health for API compatibility.
+    """
+    return ai_health_check()
+
+
+@app.route('/api/ai/chat', methods=['POST'])
+def ai_chat():
+    """
+    Chat endpoint for AI service.
+    
+    Request body:
+        - message: The user's message/prompt (required)
+        - temperature: Optional override for generation temperature
+        - max_tokens: Optional override for max tokens
+    
+    Returns:
+        - response: The AI-generated response
+        - provider: The provider used (local/external)
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'message' not in data:
+            return jsonify({'error': 'Missing required field: message'}), 400
+        
+        user_message = data['message']
+        
+        if not user_message or not user_message.strip():
+            return jsonify({'error': 'Message cannot be empty'}), 400
+        
+        model_manager = ModelManager()
+        
+        generation_kwargs = {}
+        if 'temperature' in data:
+            try:
+                generation_kwargs['temperature'] = float(data['temperature'])
+            except ValueError:
+                return jsonify({'error': 'Invalid temperature value'}), 400
+        
+        if 'max_tokens' in data:
+            try:
+                generation_kwargs['max_tokens'] = int(data['max_tokens'])
+            except ValueError:
+                return jsonify({'error': 'Invalid max_tokens value'}), 400
+        
+        response_text = model_manager.generate(user_message, **generation_kwargs)
+        
+        return jsonify({
+            'response': response_text,
+            'provider': model_manager.provider_type
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'AI chat failed: {str(e)}',
+            'provider': 'none'
+        }), 500
+
 @app.route('/api/spaces') #get parking_slot spaces / numbers yada yada
 def get_parking_spaces():
 

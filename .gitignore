@@ -22,3 +22,6 @@ backend/database.db
 .env
 .env.local
 .env.production
+
+# Planning docs (local-only)
+.planning/

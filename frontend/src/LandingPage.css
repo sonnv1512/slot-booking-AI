@@ -98,6 +98,20 @@
     box-shadow: 0 2px 8px rgba(81, 37, 122, 0.3);
 }
 
+/* credits section */
+.credits {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.85rem;
+    color: #51257a;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    z-index: 3;
+}
+
 /* tablet */
 @media (max-width: 768px) {
     .landing-content {

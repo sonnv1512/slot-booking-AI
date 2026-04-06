@@ -1,3 +1,4 @@
+import API_BASE from './config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ManagementPage.css';
@@ -12,7 +13,7 @@ function ManagementPage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/check-auth', {
+                const response = await fetch(API_BASE + '/api/check-auth', {
                     credentials: 'include'
                 });
 
@@ -75,7 +76,13 @@ function ManagementPage() {
                     className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
                     onClick={() => setActiveTab('bookings')}
                 >
-                    🅿️ Bookings
+                    📅 Bookings
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'parking-slots' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('parking-slots')}
+                >
+                    🅿️ Parking Slots
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
@@ -89,6 +96,7 @@ function ManagementPage() {
             <div className="tab-content">
                 {activeTab === 'users' && <UsersTab currentUserId={user.id} />}
                 {activeTab === 'bookings' && <BookingsTab />}
+                {activeTab === 'parking-slots' && <ParkingSlotsTab />}
                 {activeTab === 'settings' && <SettingsTab />}
             </div>
         </div>
@@ -108,6 +116,7 @@ function UsersTab({ currentUserId }) {
     //modals
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalMode, setModalMode] = useState(''); // 'password' or 'role'
 
@@ -133,7 +142,7 @@ function UsersTab({ currentUserId }) {
     //fetch all users from api
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/admin/users', {
+            const response = await fetch(API_BASE + '/api/admin/users', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -169,7 +178,7 @@ function UsersTab({ currentUserId }) {
 
         if (confirmed) {
             try {
-                const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+                const response = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -204,6 +213,12 @@ function UsersTab({ currentUserId }) {
                     onChange={handleSearch}
                     className="search-input"
                 />
+                <button
+                    className="import-csv-btn"
+                    onClick={() => setShowImportModal(true)}
+                >
+                    📥 Import CSV
+                </button>
                 <button
                     className="add-user-btn"
                     onClick={() => setShowAddModal(true)}
@@ -269,6 +284,14 @@ function UsersTab({ currentUserId }) {
                     )}
                 </tbody>
             </table>
+
+            {/* import csv modal */}
+            {showImportModal && (
+                <ImportCSVModal
+                    onClose={() => setShowImportModal(false)}
+                    onSuccess={fetchUsers}
+                />
+            )}
 
             {/* add user modal */}
             {showAddModal && (
@@ -338,12 +361,13 @@ function BookingsTab() {
     const [hoverInfo, setHoverInfo] = useState(null);
 
     //parking spaces
-    const spaces = [60, 61, 62, 63, 64, 65];
+    const [spaces, setSpaces] = useState([]);
 
     //load users and bookigns on mount
     useEffect(() => {
         fetchUsers();
         fetchBookings();
+        fetchSpaces();
     }, []);
 
     //filter user search results when typing (manual booking form)
@@ -412,7 +436,7 @@ function BookingsTab() {
         //filter by space
         if (filterSpace) {
             filtered = filtered.filter(booking =>
-                booking.parking_slot_number === parseInt(filterSpace)
+                String(booking.parking_slot_number) === String(filterSpace)
             );
         }
 
@@ -453,7 +477,7 @@ function BookingsTab() {
     //fetch all users
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/admin/users', {
+            const response = await fetch(API_BASE + '/api/admin/users', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -466,7 +490,7 @@ function BookingsTab() {
     //fetch all bookigns
     const fetchBookings = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/admin/all-bookings', {
+            const response = await fetch(API_BASE + '/api/admin/all-bookings', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -479,10 +503,29 @@ function BookingsTab() {
         }
     };
 
+    //fetch all parking spaces from api
+    const fetchSpaces = async () => {
+        try {
+            const response = await fetch(API_BASE + '/api/spaces', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            const sorted = data.sort((a, b) => {
+                const aNum = parseInt(a.parking_slot_number);
+                const bNum = parseInt(b.parking_slot_number);
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return String(a.parking_slot_number).localeCompare(String(b.parking_slot_number));
+            });
+            setSpaces(sorted.map(s => String(s.parking_slot_number)));
+        } catch (error) {
+            console.error('Error fetching spaces:', error);
+        }
+    };
+
     //check which spaces are availble for the date
     const checkAvailability = async (date) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/spaces/available?date=${date}`, {
+            const response = await fetch(`${API_BASE}/api/spaces/available?date=${date}`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -523,7 +566,7 @@ function BookingsTab() {
         //get booking info
         try {
             const response = await fetch(
-                `http://localhost:5000/api/admin/booking-info?space=${space}&date=${selectedDate}`,
+                `${API_BASE}/api/admin/booking-info?space=${space}&date=${selectedDate}`,
                 { credentials: 'include' }
             );
 
@@ -646,7 +689,7 @@ function BookingsTab() {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/admin/bookings/manual', {
+            const response = await fetch(API_BASE + '/api/admin/bookings/manual', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -687,7 +730,7 @@ function BookingsTab() {
 
         if (confirmed) {
             try {
-                const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}?user_id=1`, {
+                const response = await fetch(`${API_BASE}/api/bookings/${bookingId}?user_id=1`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -1034,6 +1077,262 @@ function BookingsTab() {
     );
 }
 
+// ----- parking slots tab -----
+function ParkingSlotsTab() {
+    // parking slots data
+    const [slots, setSlots] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [editMode, setEditMode] = useState(false);
+    const [newSlotInput, setNewSlotInput] = useState('');
+    const [newSlotRestricted, setNewSlotRestricted] = useState(false);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [addingSlot, setAddingSlot] = useState(false);
+
+    // fetch slots on mount
+    useEffect(() => {
+        fetchSlots();
+    }, []);
+
+    // fetch all parking slots from admin API (includes restricted slots + is_restricted flag)
+    const fetchSlots = async () => {
+        try {
+            const response = await fetch(API_BASE + '/api/admin/slots', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            const sorted = data.sort((a, b) => {
+                const aNum = parseInt(a.parking_slot_number);
+                const bNum = parseInt(b.parking_slot_number);
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return String(a.parking_slot_number).localeCompare(String(b.parking_slot_number));
+            });
+            setSlots(sorted);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching parking slots:', error);
+            setLoading(false);
+        }
+    };
+
+    // delete a parking slot
+    const handleDeleteSlot = async (slotNumber) => {
+        const confirmed = window.confirm(
+            `Delete parking space ${slotNumber}? This will delete all associated bookings.`
+        );
+
+        if (confirmed) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/parking-slots/${slotNumber}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Space ${slotNumber} deleted successfully!`);
+                    fetchSlots();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting slot:', error);
+                alert('Failed to delete slot');
+            }
+        }
+    };
+
+    // add a new parking slot
+    const handleAddSlot = async (slotInput) => {
+        if (!slotInput || !slotInput.trim()) {
+            alert('Please enter a parking slot number');
+            return;
+        }
+
+        // validate alphanumeric (letters and numbers only, no special chars)
+        const slotStr = slotInput.trim();
+        const alphanumericRegex = /^[a-zA-Z0-9\s]+$/;
+
+        if (!alphanumericRegex.test(slotStr)) {
+            alert('Parking slot can only contain letters and numbers');
+            return;
+        }
+
+        if (slotStr.length > 20) {
+            alert('Parking slot cannot exceed 20 characters');
+            return;
+        }
+
+        // check if already exists
+        if (slots.some(s => s.parking_slot_number.toString() === slotStr)) {
+            alert(`Space "${slotStr}" already exists!`);
+            return;
+        }
+
+        setAddingSlot(true);
+
+        try {
+            const response = await fetch(API_BASE + '/api/admin/parking-slots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ parking_slot_number: slotStr, is_restricted: newSlotRestricted })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setNewSlotInput('');
+                setNewSlotRestricted(false);
+                setShowAddForm(false);
+                fetchSlots();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error creating slot:', error);
+            alert('Failed to create slot');
+        } finally {
+            setAddingSlot(false);
+        }
+    };
+
+    // toggle restricted status on a slot
+    const handleToggleRestricted = async (slotNumber, currentRestricted) => {
+        try {
+            const response = await fetch(`${API_BASE}/api/admin/parking-slots/${slotNumber}/restricted`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ is_restricted: !currentRestricted })
+            });
+            const data = await response.json();
+            if (data.success) fetchSlots();
+            else alert('Error: ' + (data.error || 'Unknown error'));
+        } catch (error) {
+            console.error('Error toggling restricted:', error);
+        }
+    };
+
+    // split slots into rows of 3
+    const getSlotRows = () => {
+        const rows = [];
+        for (let i = 0; i < slots.length; i += 3) {
+            rows.push(slots.slice(i, i + 3));
+        }
+        return rows;
+    };
+
+    if (loading) {
+        return <div className="loading">Loading parking slots...</div>;
+    }
+
+    const slotRows = getSlotRows();
+
+    return (
+        <div className="parking-slots-management">
+            <div className="management-section">
+                {editMode && (
+                    <div className="edit-mode-info">
+                        <p>🔒 = <strong>Restricted (admin-only)</strong> — staff users cannot see or book these slots. Only admins can assign them manually.</p>
+                        <p style={{ marginTop: '6px' }}>Click 🔒/🔓 to toggle restriction, × to delete, + to add a new slot.</p>
+                    </div>
+                )}
+
+                <div className="section-header">
+                    <h3>Manage Parking Slots</h3>
+                    <button
+                        className={`btn-primary ${editMode ? 'editing' : ''}`}
+                        onClick={() => setEditMode(!editMode)}
+                    >
+                        {editMode ? '✓ Done' : '✏️ Edit'}
+                    </button>
+                </div>
+
+                {/* Slots Grid */}
+                <div className="slots-grid">
+                    {slotRows.map((row, rowIndex) => (
+                        <div key={rowIndex} className="slots-grid-row">
+                            {row.map(slot => (
+                                <div key={slot.parking_slot_number} className={`slot-block ${slot.is_restricted ? 'slot-restricted' : ''}`}>
+                                    <div className="slot-number">
+                                        {slot.parking_slot_number}
+                                        {slot.is_restricted && <span className="restricted-badge">🔒</span>}
+                                    </div>
+                                    {editMode && (
+                                        <div className="slot-edit-actions">
+                                            <button
+                                                className={`slot-restrict-btn ${slot.is_restricted ? 'is-restricted' : ''}`}
+                                                onClick={() => handleToggleRestricted(slot.parking_slot_number, slot.is_restricted)}
+                                                title={slot.is_restricted ? 'Make public' : 'Make restricted'}
+                                            >
+                                                {slot.is_restricted ? '🔓' : '🔒'}
+                                            </button>
+                                            <button
+                                                className="slot-delete-btn"
+                                                onClick={() => handleDeleteSlot(slot.parking_slot_number)}
+                                                title={`Delete space ${slot.parking_slot_number}`}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
+                    {/* Add slot — inline form in edit mode */}
+                    {editMode && (
+                        <div className="slots-grid-row">
+                            {showAddForm ? (
+                                <div className="slot-block add-slot-form">
+                                    <input
+                                        className="add-slot-input"
+                                        type="text"
+                                        placeholder="e.g. 15, A1"
+                                        value={newSlotInput}
+                                        onChange={e => setNewSlotInput(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleAddSlot(newSlotInput)}
+                                        autoFocus
+                                    />
+                                    <label className="add-slot-restricted-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={newSlotRestricted}
+                                            onChange={e => setNewSlotRestricted(e.target.checked)}
+                                        />
+                                        Restricted
+                                    </label>
+                                    <div className="add-slot-form-btns">
+                                        <button className="add-slot-confirm-btn" onClick={() => handleAddSlot(newSlotInput)} disabled={addingSlot}>
+                                            {addingSlot ? '...' : '✓'}
+                                        </button>
+                                        <button className="add-slot-cancel-btn" onClick={() => { setShowAddForm(false); setNewSlotInput(''); setNewSlotRestricted(false); }}>
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="slot-block add-slot-block" onClick={() => setShowAddForm(true)}>
+                                    <div className="add-slot-button">+</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {slots.length === 0 && (
+                    <div className="empty-state">
+                        <p>No parking slots configured.</p>
+                        {editMode && <p>Click "+" to add your first space.</p>}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ----- settings tab -----
 function SettingsTab() {
     //settings data
@@ -1052,7 +1351,7 @@ function SettingsTab() {
     //fetch all settings from api
     const fetchSettings = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/admin/settings', {
+            const response = await fetch(API_BASE + '/api/admin/settings', {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -1080,7 +1379,7 @@ function SettingsTab() {
         setSaving(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/admin/settings/max-days', {
+            const response = await fetch(API_BASE + '/api/admin/settings/max-days', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1108,7 +1407,7 @@ function SettingsTab() {
         setSaving(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/admin/settings/space-status', {
+            const response = await fetch(API_BASE + '/api/admin/settings/space-status', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1192,7 +1491,7 @@ function SettingsTab() {
                 </div>
                 <div className="settings-card-body">
                     <p className="setting-description">
-                        Mark spaces as "Out of Service" to prevent bookings during maintenance or repairs.
+                        Mark spaces as "Out of Service" (users can see can't book) to prevent bookings during maintenance or repairs.
                     </p>
                     <div className="space-status-grid">
                         {spaceStatuses.map(space => (
@@ -1252,6 +1551,243 @@ function SettingsTab() {
     );
 }
 
+// ----- import csv modal -----
+function ImportCSVModal({ onClose, onSuccess }) {
+    const [parsedRows, setParsedRows] = useState(null);   // null = no file yet
+    const [fileName, setFileName] = useState('');
+    const [importing, setImporting] = useState(false);
+    const [results, setResults] = useState(null);          // {created, skipped} after import
+
+    // simple quoted-csv row parser
+    const parseRow = (line) => {
+        const fields = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                inQuotes = !inQuotes;
+            } else if (ch === ',' && !inQuotes) {
+                fields.push(current.trim());
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+        fields.push(current.trim());
+        return fields;
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setFileName(file.name);
+        setResults(null);
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            const lines = text.trim().split('\n').map(l => l.replace(/\r$/, '').trim()).filter(l => l.length > 0);
+            if (lines.length === 0) { setParsedRows([]); return; }
+
+            // detect header row
+            const firstFields = parseRow(lines[0]).map(f => f.toLowerCase());
+            const isHeader = ['name', 'email', 'password', 'role'].some(col => firstFields.includes(col));
+
+            let nameIdx = 0, emailIdx = 1, passwordIdx = 2, roleIdx = 3;
+            if (isHeader) {
+                nameIdx     = firstFields.indexOf('name')     !== -1 ? firstFields.indexOf('name')     : 0;
+                emailIdx    = firstFields.indexOf('email')    !== -1 ? firstFields.indexOf('email')    : 1;
+                passwordIdx = firstFields.indexOf('password') !== -1 ? firstFields.indexOf('password') : 2;
+                roleIdx     = firstFields.indexOf('role')     !== -1 ? firstFields.indexOf('role')     : 3;
+            }
+
+            const dataLines = isHeader ? lines.slice(1) : lines;
+            const rows = dataLines.map((line, idx) => {
+                const f = parseRow(line);
+                return {
+                    rowNum: isHeader ? idx + 2 : idx + 1,
+                    name:     f[nameIdx]     || '',
+                    email:    f[emailIdx]    || '',
+                    password: f[passwordIdx] || '',
+                    role:     (f[roleIdx]    || 'staff').toLowerCase(),
+                };
+            });
+            setParsedRows(rows);
+        };
+        reader.readAsText(file);
+    };
+
+    const rowError = (row) => {
+        if (!row.name)                       return 'Missing name';
+        if (!row.email || !row.email.includes('@')) return 'Invalid email';
+        if (!row.password)                   return 'Missing password';
+        if (!['staff', 'admin'].includes(row.role)) return `Bad role "${row.role}"`;
+        return null;
+    };
+
+    const validRows = parsedRows ? parsedRows.filter(r => !rowError(r)) : [];
+
+    const handleImport = async () => {
+        if (validRows.length === 0) return;
+        setImporting(true);
+        try {
+            const response = await fetch(API_BASE + '/api/admin/users/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ users: validRows })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setResults(data);
+                onSuccess();
+            } else {
+                alert('Import failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('Import error:', err);
+            alert('Failed to import users');
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content import-modal-content" onClick={e => e.stopPropagation()}>
+                <button className="modal-close-btn" onClick={onClose}>✕</button>
+                <h2 className="modal-title">Import Users from CSV</h2>
+
+                {/* format guide */}
+                <div className="import-format-box">
+                    <div className="import-format-title">ℹ️ Required CSV format</div>
+                    <p className="import-format-desc">
+                        Your file must have these four columns (header row is optional):
+                    </p>
+                    <table className="import-format-table">
+                        <thead>
+                            <tr>
+                                <th>name</th>
+                                <th>email</th>
+                                <th>password</th>
+                                <th>role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>John Smith</td>
+                                <td>john@school.com</td>
+                                <td>password123</td>
+                                <td>staff</td>
+                            </tr>
+                            <tr>
+                                <td>Jane Admin</td>
+                                <td>jane@school.com</td>
+                                <td>adminpass</td>
+                                <td>admin</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p className="import-format-note">Role must be <strong>staff</strong> or <strong>admin</strong>. Rows with duplicate emails will be skipped.</p>
+                </div>
+
+                {/* file picker */}
+                {!results && (
+                    <div className="import-file-section">
+                        <label className="import-file-label">
+                            <span className="import-file-btn-text">📂 Choose CSV file</span>
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={handleFileChange}
+                                className="import-file-input"
+                            />
+                        </label>
+                        {fileName && <span className="import-file-name">{fileName}</span>}
+                    </div>
+                )}
+
+                {/* preview table */}
+                {parsedRows && parsedRows.length > 0 && !results && (
+                    <div className="import-preview">
+                        <p className="import-preview-summary">
+                            Found <strong>{parsedRows.length}</strong> row{parsedRows.length !== 1 ? 's' : ''} —{' '}
+                            <span className="import-valid-count">{validRows.length} valid</span>
+                            {parsedRows.length - validRows.length > 0 && (
+                                <span className="import-invalid-count">, {parsedRows.length - validRows.length} with errors</span>
+                            )}
+                        </p>
+                        <div className="import-preview-scroll">
+                            <table className="import-preview-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {parsedRows.map(row => {
+                                        const err = rowError(row);
+                                        return (
+                                            <tr key={row.rowNum} className={err ? 'import-row-error' : 'import-row-ok'}>
+                                                <td>{row.rowNum}</td>
+                                                <td>{row.name || <em>—</em>}</td>
+                                                <td>{row.email || <em>—</em>}</td>
+                                                <td>{row.role}</td>
+                                                <td>{err ? <span className="import-error-msg">⚠ {err}</span> : <span className="import-ok-msg">✓</span>}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {parsedRows && parsedRows.length === 0 && !results && (
+                    <p className="import-empty-msg">No data rows found in the file.</p>
+                )}
+
+                {/* results after import */}
+                {results && (
+                    <div className="import-results">
+                        <p className="import-results-created">✅ {results.created} user{results.created !== 1 ? 's' : ''} created successfully.</p>
+                        {results.skipped.length > 0 && (
+                            <>
+                                <p className="import-results-skipped-title">⚠️ {results.skipped.length} row{results.skipped.length !== 1 ? 's' : ''} skipped:</p>
+                                <ul className="import-skipped-list">
+                                    {results.skipped.map((s, i) => (
+                                        <li key={i}><strong>{s.email}</strong> — {s.reason}</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                <div className="modal-actions-row">
+                    <button className="modal-cancel-btn" onClick={onClose}>
+                        {results ? 'Close' : 'Cancel'}
+                    </button>
+                    {!results && (
+                        <button
+                            className="modal-submit-btn"
+                            onClick={handleImport}
+                            disabled={importing || !validRows.length}
+                        >
+                            {importing ? 'Importing...' : `Import ${validRows.length} User${validRows.length !== 1 ? 's' : ''}`}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ----- add user modal -----
 function AddUserModal({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -1276,7 +1812,7 @@ function AddUserModal({ onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/admin/users', {
+            const response = await fetch(API_BASE + '/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1380,7 +1916,7 @@ function EditUserModal({ user, mode, onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}/password`, {
+            const response = await fetch(`${API_BASE}/api/admin/users/${user.id}/password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -1410,7 +1946,7 @@ function EditUserModal({ user, mode, onClose, onSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/admin/users/${user.id}/role`, {
+            const response = await fetch(`${API_BASE}/api/admin/users/${user.id}/role`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

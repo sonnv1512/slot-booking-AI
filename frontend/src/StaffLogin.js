@@ -1,3 +1,4 @@
+import API_BASE from './config';
 import { useState, useEffect } from 'react';  // need useEffect too
 import { useNavigate } from 'react-router-dom';
 import './StaffLogin.css';
@@ -17,7 +18,7 @@ function StaffLogin() {
         const checkAuth = async () => {
             try {
                 // ask backend if user is logged in
-                const response = await fetch('http://localhost:5000/api/check-auth', {
+                const response = await fetch(API_BASE + '/api/check-auth', {
                     credentials: 'include'  // sends session cookie
                 });
 
@@ -55,7 +56,7 @@ function StaffLogin() {
 
         try {
             // send login reuqest to backend
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch(API_BASE + '/api/login', {
                 method: 'POST',  // sending data
 
                 headers: {       // tell server its json

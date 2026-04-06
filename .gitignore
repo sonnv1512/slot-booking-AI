@@ -25,3 +25,4 @@ backend/database.db
 
 # Planning docs (local-only)
 .planning/
+venv/

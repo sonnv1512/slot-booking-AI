@@ -5,6 +5,9 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 
+# Import AI service
+from ai_service import ModelManager
+
 app = Flask(__name__)
 
 # cors - reads allowed origin from env var, falls back to localhost for dev
@@ -27,6 +30,39 @@ bcrypt = Bcrypt(app)  #password hashing
 @app.route('/')
 def home():
     return "Parking Booking System API"
+
+
+# ============= AI HEALTH CHECK ENDPOINT ======================================
+
+@app.route('/api/ai/health', methods=['GET'])
+def ai_health_check():
+    """
+    Health check endpoint for AI service.
+    
+    Returns:
+        - provider: current provider type ("local" or "external")
+        - model_name: name of loaded model (or null if not loaded)
+        - is_loaded: whether model is currently loaded in memory
+        - is_healthy: boolean health status of provider
+        - config: current AI configuration
+    """
+    try:
+        model_manager = ModelManager()
+        health_data = model_manager.health_check()
+        
+        return jsonify({
+            'provider': health_data.get('provider'),
+            'model_name': health_data.get('model_name'),
+            'is_loaded': health_data.get('is_loaded', False),
+            'is_healthy': health_data.get('is_healthy'),
+            'config': health_data.get('config', {}),
+            'fallback_occurred': health_data.get('fallback_occurred', False)
+        })
+    except Exception as e:
+        return jsonify({
+            'error': f'AI health check failed: {str(e)}',
+            'is_healthy': False
+        }), 500
 
 @app.route('/api/spaces') #get parking_slot spaces / numbers yada yada
 def get_parking_spaces():

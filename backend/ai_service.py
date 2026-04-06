@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 # ============= Configuration Constants =============
 # Read from environment variables with sensible defaults
 
-AI_PROVIDER = os.environ.get('AI_PROVIDER', 'local')  # 'local' or 'external'
+AI_PROVIDER = os.environ.get('AI_PROVIDER', 'local')  # 'local', 'external', or 'gemini'
 AI_MODEL_PATH = os.environ.get('AI_MODEL_PATH', 'models/ai-model.gguf')
 AI_EXTERNAL_API_URL = os.environ.get('AI_EXTERNAL_API_URL', 'https://api.openai.com/v1/chat/completions')
 AI_EXTERNAL_API_KEY = os.environ.get('AI_EXTERNAL_API_KEY', '')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 AI_TEMPERATURE = float(os.environ.get('AI_TEMPERATURE', '0.7'))
 AI_MAX_TOKENS = int(os.environ.get('AI_MAX_TOKENS', '512'))
 AI_N_CTX = int(os.environ.get('AI_N_CTX', '2048'))
@@ -34,13 +35,19 @@ class AIProvider(ABC):
     @property
     @abstractmethod
     def provider_type(self) -> str:
-        """Return the type of provider ('local' or 'external')."""
+        """Return the type of provider ('local', 'external', or 'gemini')."""
         pass
 
     @property
     @abstractmethod
     def is_healthy(self) -> bool:
         """Return whether the provider is healthy and ready."""
+        pass
+
+    @property
+    @abstractmethod
+    def model_name(self) -> Optional[str]:
+        """Return the model name or identifier."""
         pass
 
     @abstractmethod
@@ -66,6 +73,99 @@ class AIProvider(ABC):
 class ModelLoadingError(Exception):
     """Exception raised when model loading fails."""
     pass
+
+
+class GeminiAIProvider(AIProvider):
+    """
+    Google Gemini AI provider using the google-generativeai library.
+    
+    Provides direct access to Gemini models via the official API.
+    """
+
+    def __init__(self):
+        self._api_key = GEMINI_API_KEY
+        self._is_healthy = True
+        self._last_error: Optional[str] = None
+        self._model = None
+        logger.info(f"GeminiAIProvider initialized with API key: {'set' if self._api_key else 'NOT SET'}")
+
+    @property
+    def provider_type(self) -> str:
+        return "gemini"
+
+    @property
+    def is_healthy(self) -> bool:
+        return self._is_healthy
+
+    @property
+    def model_name(self) -> Optional[str]:
+        return "gemini-2.0-flash"
+
+    def _get_client(self):
+        """Lazy initialization of the Gemini client."""
+        if self._model is None:
+            if not self._api_key:
+                raise ModelLoadingError("GEMINI_API_KEY not configured")
+            
+            import google.generativeai as genai
+            genai.configure(api_key=self._api_key)
+            self._model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        return self._model
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        """Generate text using Google Gemini."""
+        temperature = kwargs.get('temperature', AI_TEMPERATURE)
+        max_tokens = kwargs.get('max_tokens', AI_MAX_TOKENS)
+
+        try:
+            client = self._get_client()
+            
+            generation_config = {
+                'temperature': temperature,
+                'max_output_tokens': max_tokens,
+            }
+
+            response = client.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+
+            if response and response.text:
+                return response.text
+            return ""
+
+        except Exception as e:
+            error_msg = f"Gemini API error: {str(e)}"
+            logger.error(error_msg)
+            self._is_healthy = False
+            self._last_error = error_msg
+            raise ModelLoadingError(error_msg)
+
+    def health_check(self) -> Dict[str, Any]:
+        """Perform health check on Gemini provider."""
+        result = {
+            "provider": "gemini",
+            "is_healthy": self._is_healthy,
+            "model_name": "gemini-2.0-flash",
+            "api_configured": bool(self._api_key),
+        }
+
+        if self._last_error:
+            result["error"] = self._last_error
+
+        # Try to verify connectivity if configured
+        if self._api_key and self._is_healthy:
+            try:
+                # Quick test - just verify we can configure
+                import google.generativeai as genai
+                genai.configure(api_key=self._api_key)
+                result["api_reachable"] = True
+            except Exception as e:
+                result["api_reachable"] = False
+                result["connection_error"] = str(e)
+
+        return result
 
 
 class LocalAIProvider(AIProvider):
@@ -229,6 +329,10 @@ class ExternalAIProvider(AIProvider):
     def is_healthy(self) -> bool:
         return self._is_healthy
 
+    @property
+    def model_name(self) -> Optional[str]:
+        return "external-api"
+
     def generate(self, prompt: str, **kwargs) -> str:
         """Generate text using external API."""
         import requests
@@ -332,6 +436,7 @@ class ModelManager:
             # Initialize instance variables on first creation
             cls._instance._local_provider = None
             cls._instance._external_provider = None
+            cls._instance._gemini_provider = None
             cls._instance._current_provider = None
             cls._instance._provider_fallback_occurred = False
             logger.info("ModelManager singleton created")
@@ -349,18 +454,38 @@ class ModelManager:
             self._external_provider = ExternalAIProvider()
         return self._external_provider
 
+    def _create_gemini_provider(self) -> GeminiAIProvider:
+        """Create and return Gemini provider instance."""
+        if self._gemini_provider is None:
+            self._gemini_provider = GeminiAIProvider()
+        return self._gemini_provider
+
     def get_provider(self) -> AIProvider:
         """
         Get the current active provider.
         
         Returns local provider by default. If local provider fails,
-        automatically falls back to external provider (per requirement #3).
+        automatically falls back to external or Gemini provider.
         """
         # Return cached provider if already determined
         if self._current_provider is not None:
             return self._current_provider
 
-        # Try local provider first (per configuration)
+        # Try Gemini provider first if configured
+        if AI_PROVIDER == 'gemini':
+            try:
+                gemini_provider = self._create_gemini_provider()
+                health = gemini_provider.health_check()
+                if health.get('is_healthy') and health.get('api_configured'):
+                    self._current_provider = gemini_provider
+                    logger.info("Using Google Gemini AI provider")
+                    return gemini_provider
+                else:
+                    logger.warning("Gemini provider unhealthy or not configured")
+            except Exception as e:
+                logger.warning(f"Gemini provider initialization failed: {str(e)}")
+
+        # Try local provider
         if AI_PROVIDER == 'local':
             try:
                 local_provider = self._create_local_provider()
@@ -375,7 +500,7 @@ class ModelManager:
             except Exception as e:
                 logger.warning(f"Local provider initialization failed: {str(e)}")
 
-        # Fall back to external provider (per requirement #3)
+        # Fall back to external provider (OpenAI-compatible or Gemini)
         if AI_PROVIDER == 'external' or not self._current_provider:
             if not self._current_provider or self._provider_fallback_occurred:
                 external_provider = self._create_external_provider()
@@ -442,11 +567,17 @@ class ModelManager:
         }
 
         # Add provider-specific details
-        if provider.provider_type == 'local':
-            result["model_name"] = provider.model_name
-            result["is_loaded"] = provider._model is not None
-        elif provider.provider_type == 'external':
-            result["api_configured"] = bool(AI_EXTERNAL_API_KEY)
+        try:
+            if provider.provider_type == 'local':
+                result["model_name"] = provider.model_name
+                result["is_loaded"] = hasattr(provider, '_model') and provider._model is not None
+            elif provider.provider_type == 'external':
+                result["api_configured"] = bool(AI_EXTERNAL_API_KEY)
+            elif provider.provider_type == 'gemini':
+                result["model_name"] = provider.model_name
+                result["api_configured"] = bool(GEMINI_API_KEY)
+        except Exception:
+            pass
 
         return result
 

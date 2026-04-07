@@ -4,6 +4,9 @@ from flask_cors import CORS
 import sqlite3
 import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Import AI service
 from ai_service import ModelManager
@@ -151,10 +154,6 @@ def get_parking_spaces():
         parking_bay_list.append({
             'parking_slot_number': slot_row['parking_slot_number']
         })
-
-
-    return jsonify(parking_bay_list)
-
 
 # ============= USER ENDPOINTS!!! ============================================
 

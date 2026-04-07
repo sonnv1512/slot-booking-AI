@@ -30,3 +30,5 @@ backend/database.db
 .opencode/
 backend/models
 backend/flask_session
+.opencode/
+.planning/

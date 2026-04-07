@@ -53,17 +53,17 @@ function ChatPopup() {
 
   // Extract confirmation details from message
   const parseConfirmation = (content) => {
-    // Look for new CONFIRM_ACTION format
+    // Look for new CONFIRM_ACTION format: CONFIRM_ACTION:BOOK:slot=A1:date=2026-04-08:staff_id=123
     const confirmMatch = content.match(/CONFIRM_ACTION:(BOOK|CANCEL):(.+?)(?:\?|$)/i);
     if (confirmMatch) {
       const actionType = confirmMatch[1].toUpperCase();
       const params = confirmMatch[2];
       
       if (actionType === 'BOOK') {
-        // Extract slot, date, staff_id from format: slot=[X]:date=[YYYY-MM-DD]:staff_id=[staff_id]
-        const slotMatch = params.match(/slot=([A-Za-z0-9]+)/i);
-        const dateMatch = params.match(/date=(\d{4}-\d{2}-\d{2})/i);
-        const staffIdMatch = params.match(/staff_id=(\d+)/i);
+        // Extract slot, date, staff_id - handle both "slot=A1" and "slot: A1" formats
+        const slotMatch = params.match(/slot[=:]([A-Za-z0-9]+)/i);
+        const dateMatch = params.match(/date[=:]([\d-]+)/i);
+        const staffIdMatch = params.match(/staff[_-]?id[=:]([\d]+)/i);
         
         return { 
           type: 'booking', 
@@ -73,9 +73,9 @@ function ChatPopup() {
           details: content 
         };
       } else if (actionType === 'CANCEL') {
-        // Extract booking_id and staff_id from format: booking_id=[ID]:staff_id=[staff_id]
-        const bookingIdMatch = params.match(/booking_id=(\d+)/i);
-        const staffIdMatch = params.match(/staff_id=(\d+)/i);
+        // Extract booking_id and staff_id - handle both "booking_id=123" and "bookingid=123" formats
+        const bookingIdMatch = params.match(/(?:booking[_-]?id)[=:]([\d]+)/i);
+        const staffIdMatch = params.match(/staff[_-]?id[=:]([\d]+)/i);
         
         return { 
           type: 'cancellation', 
@@ -294,7 +294,9 @@ function ChatPopup() {
 
   // Extract action details from AI response for non-confirm actions
   const parseAction = (content) => {
-    // Look for ACTION:LIST_SLOTS format
+    const lowerContent = content.toLowerCase();
+    
+    // First, check for explicit ACTION: format (backwards compatibility)
     const listSlotsMatch = content.match(/ACTION:LIST_SLOTS:date=(\d{4}-\d{2}-\d{2})/i);
     if (listSlotsMatch) {
       return {
@@ -303,13 +305,41 @@ function ChatPopup() {
       };
     }
     
-    // Look for ACTION:MY_BOOKINGS format
     const myBookingsMatch = content.match(/ACTION:MY_BOOKINGS:staff_id=(\d+)/i);
     if (myBookingsMatch) {
       return {
         action: 'MY_BOOKINGS',
         staffId: parseInt(myBookingsMatch[1])
       };
+    }
+    
+    // For LIST_SLOTS - detect from ANY text containing keywords
+    // Look for patterns like "available slots for", "slots for tomorrow", etc.
+    if (lowerContent.includes('available') || lowerContent.includes('slots')) {
+      // Extract date from content - look for YYYY-MM-DD
+      const dateMatch = content.match(/\d{4}-\d{2}-\d{2}/);
+      if (dateMatch) {
+        return { action: 'LIST_SLOTS', date: dateMatch[0] };
+      }
+      // Also check for "(YYYY-MM-DD)" pattern
+      const parenMatch = content.match(/\((\d{4}-\d{2}-\d{2})\)/);
+      if (parenMatch) {
+        return { action: 'LIST_SLOTS', date: parenMatch[1] };
+      }
+      // Check for natural dates like "tomorrow" or "today"
+      if (lowerContent.includes('tomorrow')) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return { action: 'LIST_SLOTS', date: tomorrow.toISOString().split('T')[0] };
+      }
+      if (lowerContent.includes('today')) {
+        return { action: 'LIST_SLOTS', date: new Date().toISOString().split('T')[0] };
+      }
+    }
+    
+    // For MY_BOOKINGS - detect from any text containing "my booking"
+    if (lowerContent.includes('my booking')) {
+      return { action: 'MY_BOOKINGS' };
     }
     
     return null;

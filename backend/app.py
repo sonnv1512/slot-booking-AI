@@ -14,7 +14,8 @@ from ai_service import ModelManager
 app = Flask(__name__)
 
 # cors - reads allowed origin from env var, falls back to localhost for dev
-CORS_ORIGIN = os.environ.get('CORS_ORIGIN', 'http://127.0.0.1:3000')
+CORS_ORIGIN = os.getenv("CORS_ORIGIN", "http://127.0.0.1:3000,http://localhost:3000").split(",")
+
 CORS(app,
      supports_credentials=True,
      origins=[CORS_ORIGIN],
@@ -91,6 +92,7 @@ def ai_chat():
     
     Request body:
         - message: The user's message/prompt (required)
+        - history: Optional array of previous messages in format [{role: "user"|"assistant", content: "..."}]
         - temperature: Optional override for generation temperature
         - max_tokens: Optional override for max tokens
     
@@ -105,6 +107,7 @@ def ai_chat():
             return jsonify({'error': 'Missing required field: message'}), 400
         
         user_message = data['message']
+        history = data.get('history', [])  # Get optional history array
         
         if not user_message or not user_message.strip():
             return jsonify({'error': 'Message cannot be empty'}), 400
@@ -124,7 +127,7 @@ def ai_chat():
             except ValueError:
                 return jsonify({'error': 'Invalid max_tokens value'}), 400
         
-        response_text = model_manager.generate(user_message, **generation_kwargs)
+        response_text = model_manager.generate(user_message, history=history, **generation_kwargs)
         
         return jsonify({
             'response': response_text,
@@ -154,7 +157,7 @@ def get_parking_spaces():
         parking_bay_list.append({
             'parking_slot_number': slot_row['parking_slot_number']
         })
-
+    return parking_bay_list
 # ============= USER ENDPOINTS!!! ============================================
 
 @app.route('/api/bookings', methods=['POST']) #user makes a booking 

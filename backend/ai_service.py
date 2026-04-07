@@ -245,8 +245,18 @@ class LocalAIProvider(AIProvider):
             self._load_error = error_msg
             raise ModelLoadingError(f"Model loading failed: {error_msg}")
 
-    def generate(self, prompt: str, **kwargs) -> str:
-        """Generate text using the local GGUF model."""
+    def generate(self, prompt: str, history: Optional[list] = None, **kwargs) -> str:
+        """
+        Generate text using the local GGUF model.
+        
+        Args:
+            prompt: The input prompt for the AI
+            history: Optional list of previous messages [{role: "user"|"assistant", content: "..."}]
+            **kwargs: Additional parameters (temperature, max_tokens, etc.)
+            
+        Returns:
+            The generated text response
+        """
         # Lazy load model on first generate call
         self._ensure_model_loaded()
 
@@ -268,6 +278,21 @@ class LocalAIProvider(AIProvider):
 2. CANCEL A BOOKING - When user wants to cancel, ask for:
    - booking_id (the ID of the booking to cancel)
 
+3. VIEW CURRENT BOOKINGS - Show the user's current bookings
+
+When you need to confirm an action with the user (like booking or cancelling), include the phrase "CONFIRM:" followed by a summary of what will happen. For example:
+- "CONFIRM: Book slot A1 for 2026-04-10?"
+- "CONFIRM: Cancel booking #123 for 2024-01-15?"
+
+You can also ask clarifying questions like:
+- "Which date would you like to book for?"
+- "Which parking slot would you prefer?"
+
+Example questions you can help with:
+- "Book a parking slot for tomorrow"
+- "Show my current booking"
+- "Cancel my booking for 2024-01-15"
+
 When the user asks to book or cancel, respond in this format:
 - First, confirm what you understand: "I understand you want to [book/cancel]. Let me help with that."
 - Then, either perform the action (if all info provided) or ask for missing information
@@ -277,17 +302,31 @@ Example responses:
 - "I understand you want to book a parking slot. To proceed, I need: staff_id, parking_slot_number, and booking_date. Could you provide these?"
 - "To cancel your booking, I need the booking_id. Could you provide that?"
 - "Your booking has been confirmed! Details: Slot A1, Date: 2026-04-10, Booking ID: 123"
+- "CONFIRM: Book slot A1 for tomorrow (2026-04-08)?"
 
 Always be helpful, polite, and ask for any missing information needed to complete the action."""
 
         try:
+            # Build messages array with history if provided
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Add conversation history if available
+            if history and len(history) > 0:
+                for msg in history:
+                    # Validate and add each history message
+                    if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                        messages.append({
+                            "role": msg["role"],
+                            "content": msg["content"]
+                        })
+            
+            # Add current user message
+            messages.append({"role": "user", "content": prompt})
+
             # Use llama_cpp ChatCompletion for text generation
             # This actually triggers the model to load if not loaded
             response = self._model.create_chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
+                messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
@@ -357,7 +396,7 @@ class ExternalAIProvider(AIProvider):
     def model_name(self) -> Optional[str]:
         return "external-api"
 
-    def generate(self, prompt: str, **kwargs) -> str:
+    def generate(self, prompt: str, history: Optional[list] = None, **kwargs) -> str:
         """Generate text using external API."""
         import requests
 
@@ -375,6 +414,21 @@ class ExternalAIProvider(AIProvider):
 2. CANCEL A BOOKING - When user wants to cancel, ask for:
    - booking_id (the ID of the booking to cancel)
 
+3. VIEW CURRENT BOOKINGS - Show the user's current bookings
+
+When you need to confirm an action with the user (like booking or cancelling), include the phrase "CONFIRM:" followed by a summary of what will happen. For example:
+- "CONFIRM: Book slot A1 for 2026-04-10?"
+- "CONFIRM: Cancel booking #123 for 2024-01-15?"
+
+You can also ask clarifying questions like:
+- "Which date would you like to book for?"
+- "Which parking slot would you prefer?"
+
+Example questions you can help with:
+- "Book a parking slot for tomorrow"
+- "Show my current booking"
+- "Cancel my booking for 2024-01-15"
+
 When the user asks to book or cancel, respond in this format:
 - First, confirm what you understand: "I understand you want to [book/cancel]. Let me help with that."
 - Then, either perform the action (if all info provided) or ask for missing information
@@ -384,6 +438,7 @@ Example responses:
 - "I understand you want to book a parking slot. To proceed, I need: staff_id, parking_slot_number, and booking_date. Could you provide these?"
 - "To cancel your booking, I need the booking_id. Could you provide that?"
 - "Your booking has been confirmed! Details: Slot A1, Date: 2026-04-10, Booking ID: 123"
+- "CONFIRM: Book slot A1 for tomorrow (2026-04-08)?"
 
 Always be helpful, polite, and ask for any missing information needed to complete the action."""
 
@@ -395,12 +450,25 @@ Always be helpful, polite, and ask for any missing information needed to complet
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
 
+        # Build messages array with history if provided
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history if available
+        if history and len(history) > 0:
+            for msg in history:
+                # Validate and add each history message
+                if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                    messages.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+        
+        # Add current user message
+        messages.append({"role": "user", "content": prompt})
+
         payload = {
             "model": "gpt-3.5-turbo",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
+            "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }

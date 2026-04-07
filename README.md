@@ -185,6 +185,46 @@ curl -X POST http://127.0.0.1:5000/api/admin/users \
 - Passwords are hashed using bcrypt
 - AI features fall back gracefully if local model is unavailable
 
+
+# Local AI Model
+
+This project uses a quantized GGUF model for local AI inference.
+
+## Model File
+
+- **Model**: Qwen3.5-2B
+- **Format**: GGUF (Q4_K_M quantization)
+- **Size**: ~1.2GB
+- **Location**: `backend/models/qwen3-5.gguf`
+
+## Download
+
+### Linux / macOS
+
+```bash
+# Using wget
+wget -O backend/models/qwen3-5.gguf "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf?download=true"
+
+# Or using curl
+curl -L -o backend/models/qwen3-5.gguf "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf?download=true"
+```
+
+### Windows (PowerShell)
+
+```powershell
+# Using Invoke-WebRequest
+Invoke-WebRequest -Uri "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf?download=true" -OutFile "backend\models\qwen3-5.gguf"
+
+# Or using curl
+curl -L -o backend\models\qwen3-5.gguf "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf?download=true"
+```
+
+## Notes
+
+- The model is already included in this repository at `backend/models/qwen3-5.gguf`
+- Only download again if you need to update or if the file is missing
+- Requires `llama-cpp-python` with GGUF support to run
+
 ## License
 
 MIT License

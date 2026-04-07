@@ -2,6 +2,41 @@ import { useState, useEffect, useRef } from 'react';
 import API_BASE from './config';
 import './ChatPopup.css';
 
+// Date helper functions using local timezone
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getTomorrowDate = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getNextWeekDate = () => {
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const year = nextWeek.getFullYear();
+  const month = String(nextWeek.getMonth() + 1).padStart(2, '0');
+  const day = String(nextWeek.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Sample questions for quick actions
+const sampleQuestions = [
+  { label: "Available slots today", message: "What slots are available today?" },
+  { label: "Available tomorrow", message: "What slots are available tomorrow?" },
+  { label: "My bookings", message: "Show my bookings" },
+  { label: "Book a slot", message: "I want to book a parking slot" }
+];
+
 function ChatPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -123,8 +158,18 @@ function ChatPopup() {
     return null;
   };
 
+  // Handle sample question button click
+  const handleSampleQuestion = (message) => {
+    setInput(message);
+    // Trigger form submission
+    const form = document.querySelector('.chat-input-form');
+    if (form) {
+      form.dispatchEvent(new Event('submit', { bubbles: true }));
+    }
+  };
+
   const sendMessage = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     if (!input.trim() || loading) return;
 
@@ -148,7 +193,12 @@ function ChatPopup() {
         },
         body: JSON.stringify({ 
           message: userMessage,
-          history: history
+          history: history,
+          date_context: {
+            today: getTodayDate(),
+            tomorrow: getTomorrowDate(),
+            next_week: getNextWeekDate()
+          }
         }),
         credentials: 'include'
       });
@@ -507,6 +557,21 @@ function ChatPopup() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Sample question buttons */}
+          {!loading && (
+            <div className="sample-questions">
+              {sampleQuestions.map((q, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => handleSampleQuestion(q.message)}
+                  disabled={loading}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Confirmation buttons */}
           {pendingConfirmation && !loading && (

@@ -16,7 +16,7 @@ def test_llama_model():
     print("Running inference...")
     
     output = llm(
-        "What is java?",
+        "What is python?",
         max_tokens=50
     )
     

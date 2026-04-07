@@ -254,6 +254,7 @@ class LocalAIProvider(AIProvider):
             history: Optional list of previous messages [{role: "user"|"assistant", content: "..."}]
             staff_id: Optional staff ID from session
             staff_email: Optional staff email from session
+            date_context: Optional dict with date context (today, tomorrow, next_week)
             **kwargs: Additional parameters (temperature, max_tokens, etc.)
             
         Returns:
@@ -272,16 +273,25 @@ class LocalAIProvider(AIProvider):
         # Get user context from session
         staff_id = kwargs.get('staff_id')
         staff_email = kwargs.get('staff_email')
+        
+        # Get date context
+        date_context = kwargs.get('date_context', {})
+        today = date_context.get('today', '')
+        tomorrow = date_context.get('tomorrow', '')
+        next_week = date_context.get('next_week', '')
 
-        # Simplified system prompt for small/local models
+        # Build system prompt with date context
         system_prompt = f"""You are a parking assistant. Keep responses short and friendly.
 
 User is logged in as: staff_id={staff_id}, email={staff_email}
 
-IMPORTANT - Date handling:
-- Parse natural dates like "today", "tomorrow", "next Monday", etc.
-- Always include the actual date in YYYY-MM-DD format in your response
-- Example: If user asks about "tomorrow", respond with "Available slots for tomorrow (2026-04-08):"
+IMPORTANT - Date Reference Context (use these exact dates):
+- Today is: {today}
+- Tomorrow is: {tomorrow}
+- Next week is: {next_week}
+
+When user mentions dates like "today", "tomorrow", or "next week", use the dates above.
+Example: If user asks about "tomorrow", respond with "Available slots for tomorrow ({tomorrow}):"
 
 Understand these intents and respond with SHORT messages:
 - "book" or "reserve" -> respond: "What date and slot number?"
@@ -400,16 +410,25 @@ class ExternalAIProvider(AIProvider):
         # Get user context from session
         staff_id = kwargs.get('staff_id')
         staff_email = kwargs.get('staff_email')
+        
+        # Get date context
+        date_context = kwargs.get('date_context', {})
+        today = date_context.get('today', '')
+        tomorrow = date_context.get('tomorrow', '')
+        next_week = date_context.get('next_week', '')
 
-        # Simplified system prompt for small/local models
+        # Build system prompt with date context
         system_prompt = f"""You are a parking assistant. Keep responses short and friendly.
 
 User is logged in as: staff_id={staff_id}, email={staff_email}
 
-IMPORTANT - Date handling:
-- Parse natural dates like "today", "tomorrow", "next Monday", etc.
-- Always include the actual date in YYYY-MM-DD format in your response
-- Example: If user asks about "tomorrow", respond with "Available slots for tomorrow (2026-04-08):"
+IMPORTANT - Date Reference Context (use these exact dates):
+- Today is: {today}
+- Tomorrow is: {tomorrow}
+- Next week is: {next_week}
+
+When user mentions dates like "today", "tomorrow", or "next week", use the dates above.
+Example: If user asks about "tomorrow", respond with "Available slots for tomorrow ({tomorrow}):"
 
 Understand these intents and respond with SHORT messages:
 - "book" or "reserve" -> respond: "What date and slot number?"

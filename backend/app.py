@@ -108,6 +108,7 @@ def ai_chat():
         
         user_message = data['message']
         history = data.get('history', [])  # Get optional history array
+        date_context = data.get('date_context', {})  # Get optional date context
         
         if not user_message or not user_message.strip():
             return jsonify({'error': 'Message cannot be empty'}), 400
@@ -131,12 +132,13 @@ def ai_chat():
             except ValueError:
                 return jsonify({'error': 'Invalid max_tokens value'}), 400
         
-        # Pass user context to the AI
+        # Pass user context and date context to the AI
         response_text = model_manager.generate(
             user_message, 
             history=history, 
             staff_id=staff_id,
             staff_email=staff_email,
+            date_context=date_context,
             **generation_kwargs
         )
         

@@ -5,6 +5,7 @@ import AdminLogin from './AdminLogin';
 import StaffDashboard from './StaffDashboard';
 import AdminDashboard from './AdminDashboard';  
 import ManagementPage from './ManagementPage';
+import ChatPopup from './ChatPopup';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/management" element={<ManagementPage />} />
       </Routes>
+      <ChatPopup />
     </BrowserRouter>
   );
 }

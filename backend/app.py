@@ -14,7 +14,7 @@ from ai_service import ModelManager
 app = Flask(__name__)
 
 # cors - reads allowed origin from env var, falls back to localhost for dev
-CORS_ORIGIN = os.getenv("CORS_ORIGIN", "http://127.0.0.1:3000,http://localhost:3000").split(",")
+CORS_ORIGIN = os.environ.get('CORS_ORIGIN', 'http://127.0.0.1:3000')
 
 CORS(app,
      supports_credentials=True,
@@ -112,6 +112,10 @@ def ai_chat():
         if not user_message or not user_message.strip():
             return jsonify({'error': 'Message cannot be empty'}), 400
         
+        # Get user info from session for the AI
+        staff_id = session.get('user_id')
+        staff_email = session.get('email')
+        
         model_manager = ModelManager()
         
         generation_kwargs = {}
@@ -127,7 +131,14 @@ def ai_chat():
             except ValueError:
                 return jsonify({'error': 'Invalid max_tokens value'}), 400
         
-        response_text = model_manager.generate(user_message, history=history, **generation_kwargs)
+        # Pass user context to the AI
+        response_text = model_manager.generate(
+            user_message, 
+            history=history, 
+            staff_id=staff_id,
+            staff_email=staff_email,
+            **generation_kwargs
+        )
         
         return jsonify({
             'response': response_text,
@@ -138,6 +149,113 @@ def ai_chat():
         return jsonify({
             'error': f'AI chat failed: {str(e)}',
             'provider': 'none'
+        }), 500
+
+
+@app.route('/api/ai/action', methods=['POST'])
+def ai_action():
+    """
+    Handle AI-triggered actions like list slots, my bookings.
+    
+    Request body:
+        - action: The action type (LIST_SLOTS, MY_BOOKINGS)
+        - date: Required for LIST_SLOTS (YYYY-MM-DD)
+        - staff_id: Required for MY_BOOKINGS
+    
+    Returns:
+        - result: The API response data
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'action' not in data:
+            return jsonify({'error': 'Missing required field: action'}), 400
+        
+        action = data['action'].upper()
+        
+        if action == 'LIST_SLOTS':
+            # Get available slots for a date
+            target_date = data.get('date')
+            if not target_date:
+                return jsonify({'error': 'Missing required field: date'}), 400
+            
+            # Validate date format
+            try:
+                datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            
+            # Call the available spaces endpoint internally
+            db_conn = sqlite3.connect('database.db')
+            db_cursor = db_conn.cursor()
+            
+            db_cursor.execute('''
+                SELECT parking_slot_number
+                FROM parking_slots
+                WHERE is_restricted = 0
+                AND parking_slot_number NOT IN (
+                    SELECT parking_slot_number
+                    FROM bookings
+                    WHERE booking_date = ?
+                )
+                AND parking_slot_number NOT IN (
+                    SELECT parking_slot_number
+                    FROM parking_space_status
+                    WHERE status = 'out_of_service'
+                )
+            ''', (target_date,))
+            
+            open_bays = db_cursor.fetchall()
+            available_spaces = [{'parking_slot_number': bay_row[0]} for bay_row in open_bays]
+            
+            db_conn.close()
+            
+            return jsonify({
+                'action': 'LIST_SLOTS',
+                'date': target_date,
+                'available_spaces': available_spaces
+            })
+        
+        elif action == 'MY_BOOKINGS':
+            # Get bookings for a staff member
+            staff_id = data.get('staff_id')
+            if not staff_id:
+                return jsonify({'error': 'Missing required field: staff_id'}), 400
+            
+            # Call the my-bookings endpoint internally
+            db_conn = sqlite3.connect('database.db')
+            db_conn.row_factory = sqlite3.Row
+            db_cursor = db_conn.cursor()
+            
+            db_cursor.execute('''
+                SELECT booking_id, parking_slot_number, created_at, booking_date
+                FROM bookings
+                WHERE user_id = ?
+            ''', (staff_id,))
+            
+            raw_booking_rows = db_cursor.fetchall()
+            
+            my_booking_records = [{
+                'booking_id': booking_row['booking_id'],
+                'parking_slot_number': booking_row['parking_slot_number'],
+                'created_at': booking_row['created_at'],
+                'booking_date': booking_row['booking_date']
+            } for booking_row in raw_booking_rows]
+            
+            db_conn.close()
+            
+            return jsonify({
+                'action': 'MY_BOOKINGS',
+                'staff_id': staff_id,
+                'bookings': my_booking_records
+            })
+        
+        else:
+            return jsonify({'error': f'Unknown action: {action}'}), 400
+    
+    except Exception as e:
+        return jsonify({
+            'error': f'AI action failed: {str(e)}'
         }), 500
 
 @app.route('/api/spaces') #get parking_slot spaces / numbers yada yada

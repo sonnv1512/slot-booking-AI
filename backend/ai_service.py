@@ -252,6 +252,8 @@ class LocalAIProvider(AIProvider):
         Args:
             prompt: The input prompt for the AI
             history: Optional list of previous messages [{role: "user"|"assistant", content: "..."}]
+            staff_id: Optional staff ID from session
+            staff_email: Optional staff email from session
             **kwargs: Additional parameters (temperature, max_tokens, etc.)
             
         Returns:
@@ -266,45 +268,37 @@ class LocalAIProvider(AIProvider):
         # Get generation parameters
         temperature = kwargs.get('temperature', AI_TEMPERATURE)
         max_tokens = kwargs.get('max_tokens', AI_MAX_TOKENS)
+        
+        # Get user context from session
+        staff_id = kwargs.get('staff_id')
+        staff_email = kwargs.get('staff_email')
 
-        # System prompt to inform the AI about available actions
-        system_prompt = """You are a helpful parking assistant for a parking slot booking system. You can help users with the following actions:
+        # Simplified system prompt for small/local models
+        system_prompt = f"""You are a parking assistant. Keep responses short and friendly.
 
-1. BOOK A PARKING SLOT - When user wants to book, ask for these required details:
-   - staff_id (the ID of the staff member booking)
-   - parking_slot_number (the slot number to book)
-   - booking_date (date in YYYY-MM-DD format)
+User is logged in as: staff_id={staff_id}, email={staff_email}
 
-2. CANCEL A BOOKING - When user wants to cancel, ask for:
-   - booking_id (the ID of the booking to cancel)
+IMPORTANT - Date handling:
+- Parse natural dates like "today", "tomorrow", "next Monday", etc.
+- Always include the actual date in YYYY-MM-DD format in your response
+- Example: If user asks about "tomorrow", respond with "Available slots for tomorrow (2026-04-08):"
 
-3. VIEW CURRENT BOOKINGS - Show the user's current bookings
+Understand these intents and respond with SHORT messages:
+- "book" or "reserve" -> respond: "What date and slot number?"
+- "cancel" -> respond: "What is your booking ID?"
+- "available" or "slots" -> Ask for date, then respond with "ACTION:LIST_SLOTS:date=[YYYY-MM-DD]"
+- "my booking" or "my bookings" -> respond: "ACTION:MY_BOOKINGS:staff_id=[staff_id]"
+- "hello" or "hi" -> respond: "Hi! How can I help you with parking today?"
 
-When you need to confirm an action with the user (like booking or cancelling), include the phrase "CONFIRM:" followed by a summary of what will happen. For example:
-- "CONFIRM: Book slot A1 for 2026-04-10?"
-- "CONFIRM: Cancel booking #123 for 2024-01-15?"
+If user provides all needed info for booking (slot + date), respond:
+"CONFIRM_ACTION:BOOK:slot=[X]:date=[YYYY-MM-DD]:staff_id=[staff_id]"
+Example: "CONFIRM_ACTION:BOOK:slot=A1:date=2026-04-08:staff_id=123"
 
-You can also ask clarifying questions like:
-- "Which date would you like to book for?"
-- "Which parking slot would you prefer?"
+If user provides booking ID for cancel, respond:
+"CONFIRM_ACTION:CANCEL:booking_id=[ID]:staff_id=[staff_id]"
+Example: "CONFIRM_ACTION:CANCEL:booking_id=456:staff_id=123"
 
-Example questions you can help with:
-- "Book a parking slot for tomorrow"
-- "Show my current booking"
-- "Cancel my booking for 2024-01-15"
-
-When the user asks to book or cancel, respond in this format:
-- First, confirm what you understand: "I understand you want to [book/cancel]. Let me help with that."
-- Then, either perform the action (if all info provided) or ask for missing information
-- After action, clearly state the result
-
-Example responses:
-- "I understand you want to book a parking slot. To proceed, I need: staff_id, parking_slot_number, and booking_date. Could you provide these?"
-- "To cancel your booking, I need the booking_id. Could you provide that?"
-- "Your booking has been confirmed! Details: Slot A1, Date: 2026-04-10, Booking ID: 123"
-- "CONFIRM: Book slot A1 for tomorrow (2026-04-08)?"
-
-Always be helpful, polite, and ask for any missing information needed to complete the action."""
+Keep all responses under 2 sentences."""
 
         try:
             # Build messages array with history if provided
@@ -402,45 +396,37 @@ class ExternalAIProvider(AIProvider):
 
         temperature = kwargs.get('temperature', AI_TEMPERATURE)
         max_tokens = kwargs.get('max_tokens', AI_MAX_TOKENS)
+        
+        # Get user context from session
+        staff_id = kwargs.get('staff_id')
+        staff_email = kwargs.get('staff_email')
 
-        # System prompt to inform the AI about available actions
-        system_prompt = """You are a helpful parking assistant for a parking slot booking system. You can help users with the following actions:
+        # Simplified system prompt for small/local models
+        system_prompt = f"""You are a parking assistant. Keep responses short and friendly.
 
-1. BOOK A PARKING SLOT - When user wants to book, ask for these required details:
-   - staff_id (the ID of the staff member booking)
-   - parking_slot_number (the slot number to book)
-   - booking_date (date in YYYY-MM-DD format)
+User is logged in as: staff_id={staff_id}, email={staff_email}
 
-2. CANCEL A BOOKING - When user wants to cancel, ask for:
-   - booking_id (the ID of the booking to cancel)
+IMPORTANT - Date handling:
+- Parse natural dates like "today", "tomorrow", "next Monday", etc.
+- Always include the actual date in YYYY-MM-DD format in your response
+- Example: If user asks about "tomorrow", respond with "Available slots for tomorrow (2026-04-08):"
 
-3. VIEW CURRENT BOOKINGS - Show the user's current bookings
+Understand these intents and respond with SHORT messages:
+- "book" or "reserve" -> respond: "What date and slot number?"
+- "cancel" -> respond: "What is your booking ID?"
+- "available" or "slots" -> Ask for date, then respond with "ACTION:LIST_SLOTS:date=[YYYY-MM-DD]"
+- "my booking" or "my bookings" -> respond: "ACTION:MY_BOOKINGS:staff_id=[staff_id]"
+- "hello" or "hi" -> respond: "Hi! How can I help you with parking today?"
 
-When you need to confirm an action with the user (like booking or cancelling), include the phrase "CONFIRM:" followed by a summary of what will happen. For example:
-- "CONFIRM: Book slot A1 for 2026-04-10?"
-- "CONFIRM: Cancel booking #123 for 2024-01-15?"
+If user provides all needed info for booking (slot + date), respond:
+"CONFIRM_ACTION:BOOK:slot=[X]:date=[YYYY-MM-DD]:staff_id=[staff_id]"
+Example: "CONFIRM_ACTION:BOOK:slot=A1:date=2026-04-08:staff_id=123"
 
-You can also ask clarifying questions like:
-- "Which date would you like to book for?"
-- "Which parking slot would you prefer?"
+If user provides booking ID for cancel, respond:
+"CONFIRM_ACTION:CANCEL:booking_id=[ID]:staff_id=[staff_id]"
+Example: "CONFIRM_ACTION:CANCEL:booking_id=456:staff_id=123"
 
-Example questions you can help with:
-- "Book a parking slot for tomorrow"
-- "Show my current booking"
-- "Cancel my booking for 2024-01-15"
-
-When the user asks to book or cancel, respond in this format:
-- First, confirm what you understand: "I understand you want to [book/cancel]. Let me help with that."
-- Then, either perform the action (if all info provided) or ask for missing information
-- After action, clearly state the result
-
-Example responses:
-- "I understand you want to book a parking slot. To proceed, I need: staff_id, parking_slot_number, and booking_date. Could you provide these?"
-- "To cancel your booking, I need the booking_id. Could you provide that?"
-- "Your booking has been confirmed! Details: Slot A1, Date: 2026-04-10, Booking ID: 123"
-- "CONFIRM: Book slot A1 for tomorrow (2026-04-08)?"
-
-Always be helpful, polite, and ask for any missing information needed to complete the action."""
+Keep all responses under 2 sentences."""
 
         headers = {
             "Content-Type": "application/json"
@@ -710,4 +696,77 @@ __all__ = [
     'LocalAIProvider',
     'ExternalAIProvider',
     'ModelLoadingError',
+    'parse_natural_date',
 ]
+
+
+def parse_natural_date(date_str: str) -> Optional[str]:
+    """Convert natural language dates to YYYY-MM-DD format.
+    
+    Supports: today, tomorrow, next week, next Monday, etc.
+    
+    Args:
+        date_str: Natural language date string (e.g., "today", "tomorrow", "next Monday")
+        
+    Returns:
+        Date string in YYYY-MM-DD format, or None if parsing fails
+    """
+    from datetime import datetime, timedelta
+    
+    date_str = date_str.lower().strip()
+    today = datetime.now()
+    
+    # Handle simple keywords
+    if date_str in ['today', 'todays']:
+        return today.strftime('%Y-%m-%d')
+    elif date_str in ['tomorrow', 'tmr', 'tmrw']:
+        return (today + timedelta(days=1)).strftime('%Y-%m-%d')
+    elif date_str in ['yesterday']:
+        return (today - timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    # Handle "next week" (7 days from now)
+    if date_str in ['next week']:
+        return (today + timedelta(days=7)).strftime('%Y-%m-%d')
+    
+    # Handle day names (next Monday, next Tuesday, etc.)
+    day_names = {
+        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+        'friday': 4, 'saturday': 5, 'sunday': 6
+    }
+    
+    if 'next ' in date_str:
+        for day_name, day_num in day_names.items():
+            if day_name in date_str:
+                # Find next occurrence of this day
+                days_ahead = day_num - today.weekday()
+                if days_ahead <= 0:  # Target day already happened this week
+                    days_ahead += 7
+                return (today + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+    
+    # Handle "this Monday" (same logic but this week)
+    if 'this ' in date_str:
+        for day_name, day_num in day_names.items():
+            if day_name in date_str:
+                days_ahead = day_num - today.weekday()
+                if days_ahead < 0:  # Target day already happened this week
+                    days_ahead += 7
+                return (today + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+    
+    # Try to parse as regular date formats
+    date_formats = [
+        '%Y-%m-%d',      # 2026-04-08
+        '%d/%m/%Y',      # 08/04/2026
+        '%m/%d/%Y',      # 04/08/2026
+        '%d-%m-%Y',      # 08-04-2026
+        '%Y/%m/%d',      # 2026/04/08
+    ]
+    
+    for fmt in date_formats:
+        try:
+            parsed_date = datetime.strptime(date_str, fmt)
+            return parsed_date.strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    
+    # Can't parse
+    return None

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import API_BASE from './config';
 import './ChatPopup.css';
 
@@ -10,6 +10,34 @@ function ChatPopup() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
+  const [staffId, setStaffId] = useState(null);
+  const messagesEndRef = useRef(null);
+
+  // Get staff_id from session on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/check-auth`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated) {
+          setStaffId(data.user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    }
+  };
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
@@ -17,23 +45,79 @@ function ChatPopup() {
 
   // Check if message needs confirmation
   const needsConfirmation = (content) => {
-    return content.includes('CONFIRM:') || 
+    return content.includes('CONFIRM_ACTION:') ||
+           content.includes('CONFIRM:') || 
            content.toLowerCase().includes('would you like me to proceed') ||
            content.toLowerCase().includes('should i go ahead');
   };
 
   // Extract confirmation details from message
   const parseConfirmation = (content) => {
-    // Look for CONFIRM: pattern
-    const confirmMatch = content.match(/CONFIRM:\s*(.+?)(?:\?|$)/i);
+    // Look for new CONFIRM_ACTION format
+    const confirmMatch = content.match(/CONFIRM_ACTION:(BOOK|CANCEL):(.+?)(?:\?|$)/i);
     if (confirmMatch) {
-      const actionText = confirmMatch[1].trim();
+      const actionType = confirmMatch[1].toUpperCase();
+      const params = confirmMatch[2];
       
-      // Determine action type
+      if (actionType === 'BOOK') {
+        // Extract slot, date, staff_id from format: slot=[X]:date=[YYYY-MM-DD]:staff_id=[staff_id]
+        const slotMatch = params.match(/slot=([A-Za-z0-9]+)/i);
+        const dateMatch = params.match(/date=(\d{4}-\d{2}-\d{2})/i);
+        const staffIdMatch = params.match(/staff_id=(\d+)/i);
+        
+        return { 
+          type: 'booking', 
+          slot: slotMatch ? slotMatch[1] : null,
+          date: dateMatch ? dateMatch[1] : null,
+          staffId: staffIdMatch ? parseInt(staffIdMatch[1]) : null,
+          details: content 
+        };
+      } else if (actionType === 'CANCEL') {
+        // Extract booking_id and staff_id from format: booking_id=[ID]:staff_id=[staff_id]
+        const bookingIdMatch = params.match(/booking_id=(\d+)/i);
+        const staffIdMatch = params.match(/staff_id=(\d+)/i);
+        
+        return { 
+          type: 'cancellation', 
+          bookingId: bookingIdMatch ? parseInt(bookingIdMatch[1]) : null,
+          staffId: staffIdMatch ? parseInt(staffIdMatch[1]) : null,
+          details: content 
+        };
+      }
+    }
+    
+    // Legacy format fallback
+    const legacyConfirmMatch = content.match(/CONFIRM:\s*(.+?)(?:\?|$)/i);
+    if (legacyConfirmMatch) {
+      const actionText = legacyConfirmMatch[1].trim();
+      
       if (actionText.toLowerCase().includes('book')) {
-        return { type: 'booking', details: actionText };
+        const slotMatch = actionText.match(/slot\s+([A-Za-z0-9]+)/i);
+        const dateMatch = actionText.match(/(?:for|on)\s+(\d{4}-\d{2}-\d{2}|tomorrow|today)/i);
+        
+        let bookingDate = dateMatch ? dateMatch[1] : null;
+        if (bookingDate === 'tomorrow') {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          bookingDate = tomorrow.toISOString().split('T')[0];
+        } else if (bookingDate === 'today') {
+          bookingDate = new Date().toISOString().split('T')[0];
+        }
+        
+        return { 
+          type: 'booking', 
+          slot: slotMatch ? slotMatch[1] : null,
+          date: bookingDate,
+          details: actionText 
+        };
       } else if (actionText.toLowerCase().includes('cancel')) {
-        return { type: 'cancellation', details: actionText };
+        const bookingIdMatch = actionText.match(/(?:booking\s+(?:id\s+)?|ID\s*)\s*(\d+)/i);
+        
+        return { 
+          type: 'cancellation', 
+          bookingId: bookingIdMatch ? parseInt(bookingIdMatch[1]) : null,
+          details: actionText 
+        };
       }
     }
     return null;
@@ -87,6 +171,9 @@ function ChatPopup() {
         const confirmation = parseConfirmation(assistantMessage);
         setPendingConfirmation(confirmation);
       }
+
+      // Check if we need to auto-fetch data (available slots, my bookings)
+      checkAutoFetch(assistantMessage);
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
@@ -99,7 +186,14 @@ function ChatPopup() {
   };
 
   const handleConfirm = async () => {
-    if (!pendingConfirmation) return;
+    if (!pendingConfirmation || !staffId) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Error: Not authenticated. Please log in first.' 
+      }]);
+      setPendingConfirmation(null);
+      return;
+    }
     
     setLoading(true);
     const confirmMsg = pendingConfirmation.type === 'booking' 
@@ -113,31 +207,54 @@ function ChatPopup() {
     }]);
 
     try {
-      // For now, we'll add a message to the AI to execute the action
-      const executeMessage = `CONFIRMED: ${pendingConfirmation.details}`;
+      let resultMessage = '';
       
-      const history = messages
-        .filter((msg, idx) => idx !== 0 || msg.role !== 'assistant' || msg.content !== 'Hi! How can I help you with parking today?')
-        .map(msg => ({ role: msg.role, content: msg.content }));
+      if (pendingConfirmation.type === 'booking') {
+        // Call POST /api/bookings
+        if (!pendingConfirmation.slot || !pendingConfirmation.date) {
+          throw new Error('Missing slot or date information');
+        }
+        
+        const response = await fetch(`${API_BASE}/api/bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: staffId,
+            parking_slot_number: pendingConfirmation.slot,
+            booking_date: pendingConfirmation.date
+          }),
+          credentials: 'include'
+        });
 
-      const response = await fetch(`${API_BASE}/api/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          message: executeMessage,
-          history: history
-        }),
-        credentials: 'include'
-      });
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create booking');
+        }
+        
+        resultMessage = `Booking confirmed! Your booking ID is ${data.booking_id}. Slot ${pendingConfirmation.slot} is booked for ${pendingConfirmation.date}.`;
+        
+      } else if (pendingConfirmation.type === 'cancellation') {
+        // Call DELETE /api/bookings/<booking_id>
+        if (!pendingConfirmation.bookingId) {
+          throw new Error('Missing booking ID');
+        }
+        
+        const response = await fetch(`${API_BASE}/api/bookings/${pendingConfirmation.bookingId}?user_id=${staffId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to execute action');
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to cancel booking');
+        }
+        
+        resultMessage = `Booking ${pendingConfirmation.bookingId} has been cancelled successfully.`;
       }
-
-      const data = await response.json();
-      const resultMessage = data.response || 'Action completed successfully.';
       
       // Add result message
       setMessages(prev => [...prev, { 
@@ -148,7 +265,7 @@ function ChatPopup() {
       console.error('Confirmation error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Sorry, something went wrong. Please try again.' 
+        content: `Sorry, something went wrong: ${error.message}` 
       }]);
     } finally {
       setLoading(false);
@@ -162,6 +279,161 @@ function ChatPopup() {
       content: 'Action cancelled. Is there anything else I can help you with?' 
     }]);
     setPendingConfirmation(null);
+  };
+
+  // Extract date from AI response (looks for YYYY-MM-DD pattern)
+  const extractDateFromResponse = (content) => {
+    const dateMatch = content.match(/\((\d{4}-\d{2}-\d{2})\)/);
+    if (dateMatch) {
+      return dateMatch[1];
+    }
+    // Also check for date mentioned in text like "for 2026-04-08"
+    const directMatch = content.match(/\d{4}-\d{2}-\d{2}/);
+    return directMatch ? directMatch[0] : null;
+  };
+
+  // Extract action details from AI response for non-confirm actions
+  const parseAction = (content) => {
+    // Look for ACTION:LIST_SLOTS format
+    const listSlotsMatch = content.match(/ACTION:LIST_SLOTS:date=(\d{4}-\d{2}-\d{2})/i);
+    if (listSlotsMatch) {
+      return {
+        action: 'LIST_SLOTS',
+        date: listSlotsMatch[1]
+      };
+    }
+    
+    // Look for ACTION:MY_BOOKINGS format
+    const myBookingsMatch = content.match(/ACTION:MY_BOOKINGS:staff_id=(\d+)/i);
+    if (myBookingsMatch) {
+      return {
+        action: 'MY_BOOKINGS',
+        staffId: parseInt(myBookingsMatch[1])
+      };
+    }
+    
+    return null;
+  };
+
+  // Check if AI response contains an action that needs to be handled via backend
+  const checkAutoFetch = async (content) => {
+    const action = parseAction(content);
+    
+    if (!action) return;
+    
+    const { action: actionType, date, staffId: actionStaffId } = action;
+    
+    // Use either the extracted staff_id or the current session staff_id
+    const currentStaffId = actionStaffId || staffId;
+    
+    if (actionType === 'MY_BOOKINGS') {
+      if (!currentStaffId) return;
+      
+      // Add loading message
+      const loadingMsgId = Date.now();
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Loading your bookings...',
+        isLoading: true,
+        loadingId: loadingMsgId
+      }]);
+      
+      try {
+        // Call the new /api/ai/action endpoint instead of direct API
+        const response = await fetch(`${API_BASE}/api/ai/action`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'MY_BOOKINGS',
+            staff_id: currentStaffId
+          }),
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          let resultText = 'Your bookings:\n';
+          
+          if (data.bookings && data.bookings.length > 0) {
+            data.bookings.forEach(booking => {
+              resultText += `- Booking #${booking.booking_id}: Slot ${booking.parking_slot_number} on ${booking.booking_date}\n`;
+            });
+          } else {
+            resultText = 'You have no bookings.';
+          }
+          
+          // Replace loading message with result
+          setMessages(prev => prev.map(msg => 
+            msg.loadingId === loadingMsgId 
+              ? { role: 'assistant', content: resultText, isLoading: false }
+              : msg
+          ));
+        }
+      } catch (error) {
+        console.error('Failed to fetch bookings:', error);
+        setMessages(prev => prev.map(msg => 
+          msg.loadingId === loadingMsgId 
+            ? { role: 'assistant', content: 'Failed to load bookings. Please try again.', isLoading: false }
+            : msg
+        ));
+      }
+      return;
+    }
+    
+    if (actionType === 'LIST_SLOTS') {
+      if (!date) return;
+      
+      // Add loading message
+      const loadingMsgId = Date.now();
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `Loading available slots for ${date}...`,
+        isLoading: true,
+        loadingId: loadingMsgId
+      }]);
+      
+      try {
+        // Call the new /api/ai/action endpoint instead of direct API
+        const response = await fetch(`${API_BASE}/api/ai/action`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'LIST_SLOTS',
+            date: date
+          }),
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          let resultText = `Available slots for ${date}:\n`;
+          
+          if (data.available_spaces && data.available_spaces.length > 0) {
+            resultText += data.available_spaces.map(s => s.parking_slot_number).join(', ');
+          } else {
+            resultText = `No available slots for ${date}.`;
+          }
+          
+          // Replace loading message with result
+          setMessages(prev => prev.map(msg => 
+            msg.loadingId === loadingMsgId 
+              ? { role: 'assistant', content: resultText, isLoading: false }
+              : msg
+          ));
+        }
+      } catch (error) {
+        console.error('Failed to fetch available slots:', error);
+        setMessages(prev => prev.map(msg => 
+          msg.loadingId === loadingMsgId 
+            ? { role: 'assistant', content: 'Failed to load available slots. Please try again.', isLoading: false }
+            : msg
+        ));
+      }
+    }
   };
 
   return (
@@ -191,7 +463,11 @@ function ChatPopup() {
                 key={index} 
                 className={`chat-message ${msg.role}`}
               >
-                {msg.content}
+                {msg.isLoading ? (
+                  <span className="chat-loading">{msg.content}</span>
+                ) : (
+                  msg.content
+                )}
               </div>
             ))}
             {loading && (
@@ -199,6 +475,7 @@ function ChatPopup() {
                 <span className="chat-loading">Thinking...</span>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Confirmation buttons */}
